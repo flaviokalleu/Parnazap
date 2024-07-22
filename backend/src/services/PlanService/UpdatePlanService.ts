@@ -8,17 +8,37 @@ interface PlanData {
   connections?: number;
   queues?: number;
   value?: number;
+  useWhatsapp?: boolean;
+  useFacebook?: boolean;
+  useInstagram?: boolean;
   useCampaigns?: boolean;
   useSchedules?: boolean;
   useInternalChat?: boolean;
   useExternalApi?: boolean;
   useKanban?: boolean;
-  useOpenAi?: boolean;
-  useIntegrations?: boolean;
+  useInternal?: boolean;
+  useVisualCommunication?: boolean; // Adicionado aqui
 }
 
 const UpdatePlanService = async (planData: PlanData): Promise<Plan> => {
-  const { id, name, users, connections, queues, value } = planData;
+  const {
+    id,
+    name,
+    users,
+    connections,
+    queues,
+    value,
+    useWhatsapp,
+    useFacebook,
+    useInstagram,
+    useCampaigns,
+    useSchedules,
+    useInternalChat,
+    useExternalApi,
+    useKanban,
+    useInternal,
+    useVisualCommunication // Adicionado aqui
+  } = planData;
 
   const plan = await Plan.findByPk(id);
 
@@ -26,7 +46,23 @@ const UpdatePlanService = async (planData: PlanData): Promise<Plan> => {
     throw new AppError("ERR_NO_PLAN_FOUND", 404);
   }
 
-  await plan.update(planData);
+  await plan.update({
+    name,
+    users,
+    connections,
+    queues,
+    value,
+    useWhatsapp,
+    useFacebook,
+    useInstagram,
+    useCampaigns,
+    useSchedules,
+    useInternalChat,
+    useExternalApi,
+    useKanban,
+    useInternal,
+    useVisualCommunication // Adicionado aqui
+  });
 
   return plan;
 };

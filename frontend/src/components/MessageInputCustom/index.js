@@ -4,7 +4,6 @@ import "emoji-mart/css/emoji-mart.css";
 import { Picker } from "emoji-mart";
 import MicRecorder from "mic-recorder-to-mp3";
 import clsx from "clsx";
-import { isNil } from "lodash";
 
 import { makeStyles } from "@material-ui/core/styles";
 import Paper from "@material-ui/core/Paper";
@@ -26,8 +25,6 @@ import { isString, isEmpty, isObject, has } from "lodash";
 
 import { i18n } from "../../translate/i18n";
 import api from "../../services/api";
-import axios from "axios";
-
 import RecordingTimer from "./RecordingTimer";
 import { ReplyMessageContext } from "../../context/ReplyingMessage/ReplyingMessageContext";
 import { AuthContext } from "../../context/Auth/AuthContext";
@@ -36,11 +33,14 @@ import toastError from "../../errors/toastError";
 
 import useQuickMessages from "../../hooks/useQuickMessages";
 
+import { useCallback } from "react";
+import { useDropzone } from "react-dropzone";
+
 const Mp3Recorder = new MicRecorder({ bitRate: 128 });
 
 const useStyles = makeStyles((theme) => ({
   mainWrapper: {
-    backgroundColor: theme.palette.bordabox, //DARK MODE ParnaZap - Plataforma de MutiAtendimento//
+    background: theme.palette.background.paper,
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
@@ -48,7 +48,7 @@ const useStyles = makeStyles((theme) => ({
   },
 
   newMessageBox: {
-    backgroundColor: theme.palette.newmessagebox, //DARK MODE ParnaZap - Plataforma de MutiAtendimento//
+    background: theme.palette.background.default,
     width: "100%",
     display: "flex",
     padding: "7px",
@@ -58,7 +58,7 @@ const useStyles = makeStyles((theme) => ({
   messageInputWrapper: {
     padding: 6,
     marginRight: 7,
-    backgroundColor: theme.palette.inputdigita, //DARK MODE ParnaZap - Plataforma de MutiAtendimento//
+    background: theme.palette.background.paper,
     display: "flex",
     borderRadius: 20,
     flex: 1,
@@ -168,6 +168,11 @@ const useStyles = makeStyles((theme) => ({
     color: "#6bcbef",
     fontWeight: 500,
   },
+
+  dragActiveIcon: {
+    color: theme.palette.primary.main,
+  },
+
 }));
 
 const EmojiOptions = (props) => {
@@ -225,26 +230,40 @@ const SignSwitch = (props) => {
 const FileInput = (props) => {
   const { handleChangeMedias, disableOption } = props;
   const classes = useStyles();
+
+  // Handle file drop
+  const handleDrop = useCallback(
+    (acceptedFiles) => {
+      handleChangeMedias({
+        target: {
+          files: acceptedFiles,
+        },
+      });
+    },
+    [handleChangeMedias]
+  );
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop: handleDrop,
+    multiple: true,
+    disabled: disableOption(),
+  });
+
   return (
-    <>
-      <input
-        multiple
-        type="file"
-        id="upload-button"
+    <div {...getRootProps()}>
+      <input {...getInputProps()} />
+      <IconButton
+        aria-label="upload"
+        component="span"
         disabled={disableOption()}
-        className={classes.uploadInput}
-        onChange={handleChangeMedias}
-      />
-      <label htmlFor="upload-button">
-        <IconButton
-          aria-label="upload"
-          component="span"
-          disabled={disableOption()}
-        >
-          <AttachFileIcon className={classes.sendMessageIcons} />
-        </IconButton>
-      </label>
-    </>
+      >
+        <AttachFileIcon
+          className={clsx(classes.sendMessageIcons, {
+            [classes.dragActiveIcon]: isDragActive,
+          })}
+        />
+      </IconButton>
+    </div>
   );
 };
 
@@ -325,7 +344,6 @@ const CustomInput = (props) => {
     handleSendMessage,
     handleInputPaste,
     disableOption,
-    handleQuickAnswersClick,
   } = props;
   const classes = useStyles();
   const [quickMessages, setQuickMessages] = useState([]);
@@ -348,7 +366,6 @@ const CustomInput = (props) => {
         return {
           value: m.message,
           label: `/${m.shortcode} - ${truncatedMessage}`,
-          mediaPath: m.mediaPath,
         };
       });
       setQuickMessages(options);
@@ -396,7 +413,6 @@ const CustomInput = (props) => {
     return i18n.t("messagesInput.placeholderClosed");
   };
 
-
   const setInputRef = (input) => {
     if (input) {
       input.focus();
@@ -421,15 +437,8 @@ const CustomInput = (props) => {
           }
         }}
         onChange={(event, opt) => {
-         
-          if (isObject(opt) && has(opt, "value") && isNil(opt.mediaPath)) {
+          if (isObject(opt) && has(opt, "value")) {
             setInputMessage(opt.value);
-            setTimeout(() => {
-              inputRef.current.scrollTop = inputRef.current.scrollHeight;
-            }, 200);
-          } else if (isObject(opt) && has(opt, "value") && !isNil(opt.mediaPath)) {
-            handleQuickAnswersClick(opt);
-
             setTimeout(() => {
               inputRef.current.scrollTop = inputRef.current.scrollHeight;
             }, 200);
@@ -477,7 +486,41 @@ const MessageInputCustom = (props) => {
     useContext(ReplyMessageContext);
   const { user } = useContext(AuthContext);
 
+  //console.log(user.profile);
+
+  const [signMessageBox, setSignMessageBox] = useState(true);
   const [signMessage, setSignMessage] = useLocalStorage("signOption", true);
+
+  useEffect(() => {
+    async function fetchData() {
+    
+      let settingIndex;
+
+      	try {
+        	const { data } = await api.get("/settings/");            
+        	settingIndex = data.filter((s) => s.key === "sendSignMessage");
+        } catch (err) {
+        	toastError(err);
+        }
+
+        if (settingIndex[0]?.value === "enabled") {
+            
+            setSignMessageBox(true);
+        
+        }else {
+        
+            if(user.profile === "admin" || user.profile === "supervisor"){
+            	setSignMessageBox(true);
+            }else{        
+        		setSignMessageBox(false);
+            }
+        
+      	}
+    
+ 
+    }
+    fetchData();
+  }, []);
 
   useEffect(() => {
     inputRef.current.focus();
@@ -494,11 +537,11 @@ const MessageInputCustom = (props) => {
   }, [ticketId, setReplyingMessage]);
 
   // const handleChangeInput = e => {
-  // 	if (isObject(e) && has(e, 'value')) {
-  // 		setInputMessage(e.value);
-  // 	} else {
-  // 		setInputMessage(e.target.value)
-  // 	}
+  //  if (isObject(e) && has(e, 'value')) {
+  //    setInputMessage(e.value);
+  //  } else {
+  //    setInputMessage(e.target.value)
+  //  }
   // };
 
   const handleAddEmoji = (e) => {
@@ -519,45 +562,6 @@ const MessageInputCustom = (props) => {
     if (e.clipboardData.files[0]) {
       setMedias([e.clipboardData.files[0]]);
     }
-  };
-
-  const handleUploadQuickMessageMedia = async (blob, message) => {
-    setLoading(true);
-    try {
-      const extension = blob.type.split("/")[1];
-
-      const formData = new FormData();
-      const filename = `${new Date().getTime()}.${extension}`;
-      formData.append("medias", blob, filename);
-      formData.append("body",  message);
-      formData.append("fromMe", true);
-
-      await api.post(`/messages/${ticketId}`, formData);
-    } catch (err) {
-      toastError(err);
-      setLoading(false);
-    }
-    setLoading(false);
-  };
-  
-  const handleQuickAnswersClick = async (value) => {
-    if (value.mediaPath) {
-      try {
-        const { data } = await axios.get(value.mediaPath, {
-          responseType: "blob",
-        });
-
-        handleUploadQuickMessageMedia(data, value.value);
-        setInputMessage("");
-        return;
-        //  handleChangeMedias(response)
-      } catch (err) {
-        toastError(err);
-      }
-    }
-
-    setInputMessage("");
-    setInputMessage(value.value);
   };
 
   const handleUploadMedia = async (e) => {
@@ -734,12 +738,14 @@ const MessageInputCustom = (props) => {
             disableOption={disableOption}
             handleChangeMedias={handleChangeMedias}
           />
-
+		  
+          {signMessageBox && (
           <SignSwitch
             width={props.width}
             setSignMessage={setSignMessage}
             signMessage={signMessage}
           />
+          )}
 
           <CustomInput
             loading={loading}
@@ -751,7 +757,6 @@ const MessageInputCustom = (props) => {
             handleSendMessage={handleSendMessage}
             handleInputPaste={handleInputPaste}
             disableOption={disableOption}
-            handleQuickAnswersClick={handleQuickAnswersClick}
           />
 
           <ActionButtons

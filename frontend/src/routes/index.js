@@ -18,9 +18,8 @@ import MessagesAPI from "../pages/MessagesAPI/";
 import Helps from "../pages/Helps/";
 import ContactLists from "../pages/ContactLists/";
 import ContactListItems from "../pages/ContactListItems/";
-// import Companies from "../pages/Companies/";
+import Companies from "../pages/Companies/";
 import QuickMessages from "../pages/QuickMessages/";
-import Kanban from "../pages/Kanban";
 import { AuthProvider } from "../context/Auth/AuthContext";
 import { TicketsContextProvider } from "../context/Tickets/TicketsContext";
 import { WhatsAppsProvider } from "../context/WhatsApp/WhatsAppsContext";
@@ -31,12 +30,17 @@ import CampaignsConfig from "../pages/CampaignsConfig";
 import CampaignReport from "../pages/CampaignReport";
 import Annoucements from "../pages/Annoucements";
 import Chat from "../pages/Chat";
-import ToDoList from "../pages/ToDoList/";
 import Subscription from "../pages/Subscription/";
-import Files from "../pages/Files/";
-import Prompts from "../pages/Prompts";
-import QueueIntegration from "../pages/QueueIntegration";
-import ForgetPassword from "../pages/ForgetPassWord/"; // Reset PassWd
+import ToDoList from "../pages/ToDoList/";
+import Kanban from "../pages/Kanban";
+import Ratings from "../pages/Ratings/";
+import Integrations from '../pages/Integrations';
+import Oportunidades from "../pages/Oportunidades/";
+import Wallets from "../pages/Wallet";
+import Survey from "../pages/Survey/";
+import ForgotPassword from "../pages/ForgotPassword/ForgotPassword";
+import Relatorios from "../pages/Relatórios";
+
 
 const Routes = () => {
   const [showCampaigns, setShowCampaigns] = useState(false);
@@ -55,7 +59,8 @@ const Routes = () => {
           <Switch>
             <Route exact path="/login" component={Login} />
             <Route exact path="/signup" component={Signup} />
-			<Route exact path="/forgetpsw" component={ForgetPassword} /> 
+            <Route exact path="/survey" component={Survey} />
+            <Route exact path="/forgotpassword" component={ForgotPassword} />
             {/* <Route exact path="/create-company" component={Companies} /> */}
             <WhatsAppsProvider>
               <LoggedInLayout>
@@ -74,8 +79,26 @@ const Routes = () => {
                 />
                 <Route
                   exact
+                  path="/relatorios"
+                  component={Relatorios}
+                  isPrivate
+                />
+                <Route
+                  exact
                   path="/quick-messages"
                   component={QuickMessages}
+                  isPrivate
+                />
+                <Route
+                  exact
+                  path="/schedules"
+                  component={Schedules}
+                  isPrivate
+                />
+                <Route
+                  exact
+                  path="/wallets"
+                  component={Wallets}
                   isPrivate
                 />
                 <Route
@@ -83,21 +106,11 @@ const Routes = () => {
                   path="/todolist"
                   component={ToDoList}
                   isPrivate
-                  />
-                <Route
-                  exact
-                  path="/schedules"
-                  component={Schedules}
-                  isPrivate
                 />
                 <Route exact path="/tags" component={Tags} isPrivate />
                 <Route exact path="/contacts" component={Contacts} isPrivate />
                 <Route exact path="/helps" component={Helps} isPrivate />
                 <Route exact path="/users" component={Users} isPrivate />
-                <Route exact path="/files" component={Files} isPrivate />
-                <Route exact path="/prompts" component={Prompts} isPrivate />
-                <Route exact path="/queue-integration" component={QueueIntegration} isPrivate />
-
                 <Route
                   exact
                   path="/messages-api"
@@ -108,12 +121,6 @@ const Routes = () => {
                   exact
                   path="/settings"
                   component={SettingsCustom}
-                  isPrivate
-                />
-				        <Route 
-                  exact
-                  path="/kanban"
-                  component={Kanban}
                   isPrivate
                 />
                 <Route
@@ -135,6 +142,27 @@ const Routes = () => {
                   component={Subscription}
                   isPrivate
                 />
+                <Route
+                  exact
+                  path="/kanban"
+                  component={Kanban}
+                  isPrivate
+                />
+                <Route
+                  exact
+                  path="/oportunidades"
+                  component={Oportunidades}
+                  isPrivate
+                />
+                <Route
+                  exact
+                  path="/companies"
+                  component={Companies}
+                  isPrivate
+                />
+                <Route exact path="/ratings" component={Ratings} isPrivate />
+                <Route exact path="/integrations" component={Integrations} isPrivate />
+
                 <Route exact path="/chats/:id?" component={Chat} isPrivate />
                 {showCampaigns && (
                   <>

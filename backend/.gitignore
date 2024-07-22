@@ -1,9 +1,12 @@
 node_modules
-public/*
 dist
-!public/.gitkeep
+public/*
+!public/logotipos/
 .env
 .env.test
+.env-ORG
+certs/certificadoEfi.p12
+contacts.csv
 
 package-lock.json
 yarn.lock
@@ -14,3 +17,4 @@ yarn-error.log
 # Ignore test-related files
 /coverage.data
 /coverage/
+

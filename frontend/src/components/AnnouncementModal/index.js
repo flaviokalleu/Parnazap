@@ -284,7 +284,7 @@ const AnnouncementModal = ({ open, onClose, announcementId, reload }) => {
                         onClick={() => setConfirmationOpen(true)}
                         color="secondary"
                       >
-                        <DeleteOutlineIcon />
+                        <DeleteOutlineIcon color="secondary" />
                       </IconButton>
                     </Grid>
                   )}

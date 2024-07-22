@@ -10,7 +10,13 @@ import UpdateUserService from "../services/UserServices/UpdateUserService";
 import ShowUserService from "../services/UserServices/ShowUserService";
 import DeleteUserService from "../services/UserServices/DeleteUserService";
 import SimpleListService from "../services/UserServices/SimpleListService";
-import User from "../models/User";
+
+import { SendMail } from "../helpers/SendMail";
+
+import Setting from "../models/Setting";
+
+import FindUserByEmailService from "../services/UserServices/FindUserByEmailService";
+import UpdatePasswordUserService from "../services/UserServices/UpdatePasswordUserService";
 
 type IndexQuery = {
   searchParam: string;
@@ -43,29 +49,22 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     profile,
     companyId: bodyCompanyId,
     queueIds,
-    whatsappId,
-	allTicket
+    whatsappId
   } = req.body;
   let userCompanyId: number | null = null;
-
-  let requestUser: User = null;
 
   if (req.user !== undefined) {
     const { companyId: cId } = req.user;
     userCompanyId = cId;
-    requestUser = await User.findByPk(req.user.id);
   }
 
-  const newUserCompanyId = bodyCompanyId || userCompanyId; 
-
-  if (req.url === "/signup") {
-    if (await CheckSettingsHelper("userCreation") === "disabled") {
-      throw new AppError("ERR_USER_CREATION_DISABLED", 403);
-    }
-  } else if (req.user?.profile !== "admin") {
+  if (
+    req.url === "/signup" &&
+    (await CheckSettingsHelper("userCreation")) === "disabled"
+  ) {
+    throw new AppError("ERR_USER_CREATION_DISABLED", 403);
+  } else if (req.url !== "/signup" && req.user.profile !== "admin") {
     throw new AppError("ERR_NO_PERMISSION", 403);
-  } else if (newUserCompanyId !== req.user?.companyId && !requestUser?.super) {
-    throw new AppError("ERR_NO_SUPER", 403);
   }
 
   const user = await CreateUserService({
@@ -73,14 +72,13 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     password,
     name,
     profile,
-    companyId: newUserCompanyId,
+    companyId: bodyCompanyId || userCompanyId,
     queueIds,
-    whatsappId,
-	allTicket
+    whatsappId
   });
 
   const io = getIO();
-  io.to(`company-${userCompanyId}-mainchannel`).emit(`company-${userCompanyId}-user`, {
+  io.emit(`company-${userCompanyId}-user`, {
     action: "create",
     user
   });
@@ -100,13 +98,20 @@ export const update = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
-  if (req.user.profile !== "admin") {
-    throw new AppError("ERR_NO_PERMISSION", 403);
-  }
 
   const { id: requestUserId, companyId } = req.user;
   const { userId } = req.params;
   const userData = req.body;
+
+  //console.log(req.body);
+  //console.log(req.user);
+  //console.log(userId);
+
+  //console.log("xxx");
+
+  if (req.user.profile !== "admin" && req.user.id != userId) {
+    throw new AppError("ERR_NO_PERMISSION", 403);
+  }
 
   const user = await UpdateUserService({
     userData,
@@ -115,8 +120,10 @@ export const update = async (
     requestUserId: +requestUserId
   });
 
+
+
   const io = getIO();
-  io.to(`company-${companyId}-mainchannel`).emit(`company-${companyId}-user`, {
+ io.emit(`company-${companyId}-user`, {
     action: "update",
     user
   });
@@ -138,7 +145,7 @@ export const remove = async (
   await DeleteUserService(userId, companyId);
 
   const io = getIO();
-  io.to(`company-${companyId}-mainchannel`).emit(`company-${companyId}-user`, {
+ io.emit(`company-${companyId}-user`, {
     action: "delete",
     userId
   });
@@ -156,3 +163,108 @@ export const list = async (req: Request, res: Response): Promise<Response> => {
 
   return res.status(200).json(users);
 };
+
+export const findByEmail = async (req: Request, res: Response): Promise<Response> => {
+  const {email} = req.body;
+
+  const user = await FindUserByEmailService(email);
+
+  return res.status(200).json(user);
+}
+
+const gerarToken = () => {
+  let token = "";
+  for(let i = 0; i < 6; i++) {
+    token += Math.floor(Math.random() * 10);
+  }
+  return token;
+}
+
+export const sendEmail = async (req: Request, res: Response): Promise<Response> => {
+  const { email } = req.body;
+  const token = gerarToken();
+
+  let responseReq = null;
+  let sendgridapi = null;
+  let emailsender = null;
+
+  try {
+
+    const buscacompanyId = 1;
+
+    const getapi = await Setting.findOne({
+      where: { companyId: buscacompanyId, key: "sendgridapi" },
+    });
+    sendgridapi = getapi?.value;
+
+    const getmail = await Setting.findOne({
+      where: { companyId: buscacompanyId, key: "emailsender" },
+    });
+    emailsender = getmail?.value;
+
+  } catch (error) {
+    console.error("Error retrieving settings:", error);
+  }
+
+  if (!sendgridapi) {
+    if(!emailsender){
+      return res.status(500).json({ message: "Missing sendgridapi or emailsender settings" });
+    }
+  }
+
+  const sgMail = require('@sendgrid/mail');
+  sgMail.setApiKey(sendgridapi);
+
+  const mensagem = {
+    to: `${email}`,
+    from: `${process.env.MAIL_FROM} <${emailsender}>`,
+    bcc: `${emailsender}`,
+    subject: 'Alteração de Senha',
+    text: `Token para redefinição de senha: ${token}`,
+    html: `<div style="background-color: #f7f7f7; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">
+    <p><strong>Token para redefinição de senha:</strong></p>
+    <p style="font-size: 26px;"><strong>${token}</strong></p>
+  </div>`,
+  }
+
+  if(sendgridapi){
+
+    sgMail.send(mensagem)
+    .then((response: any) => {
+      console.log("Envio Email: ", response);
+      responseReq = response
+    })
+    .catch((err: any) => console.log(err));
+  }else if(emailsender){
+
+    SendMail(mensagem)
+    .then((response: any) => {
+      console.log("Envio Email: ", response);
+      responseReq = response
+    })
+    .catch((err: any) => console.log(err));
+
+  }else{
+    return res.status(500).json({ message: "Missing sendgridapi or emailsender settings" });
+  }
+
+
+
+  return res.status(200).json({
+    responseReq: responseReq,
+    token: token
+  });
+}
+
+export const updatePasswordUser = async (req: Request, res: Response): Promise<Response> => {
+  const {email} = req.body;
+  const {password} = req.body;
+
+  const user = await UpdatePasswordUserService(email, password);
+
+  if(user === null) {
+    new AppError("Not Update");
+  }
+
+  return res.status(200).json(user);
+}

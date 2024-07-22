@@ -1,19 +1,22 @@
 import { useState, useEffect, useContext } from "react";
 import { useHistory } from "react-router-dom";
 import { has, isArray } from "lodash";
+import { Redirect } from 'react-router'
 
 import { toast } from "react-toastify";
 
 import { i18n } from "../../translate/i18n";
 import api from "../../services/api";
 import toastError from "../../errors/toastError";
-import { SocketContext } from "../../context/Socket/SocketContext";
+import { socketConnection } from "../../services/socket";
 import moment from "moment";
+import { SocketContext } from "../../context/Socket/SocketContext";
 const useAuth = () => {
   const history = useHistory();
   const [isAuth, setIsAuth] = useState(false);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState({});
+  const socketManager = useContext(SocketContext);
 
   api.interceptors.request.use(
     (config) => {
@@ -55,8 +58,6 @@ const useAuth = () => {
     }
   );
 
-  const socketManager = useContext(SocketContext);
-
   useEffect(() => {
     const token = localStorage.getItem("token");
     (async () => {
@@ -76,22 +77,24 @@ const useAuth = () => {
 
   useEffect(() => {
     const companyId = localStorage.getItem("companyId");
-    if (companyId) {
-   
-      const socket = socketManager.getSocket(companyId);
+    if (!companyId) {
+		return () => {};
+	}
+    const socket = socketManager.GetSocket(companyId);
 
-      socket.on(`company-${companyId}-user`, (data) => {
-        if (data.action === "update" && data.user.id === user.id) {
-          setUser(data.user);
-        }
-      });
-    
-    
+    const onCompanyUserUseAuth = (data) => {
+      if (data.action === "update" && data.user.id === user.id) {
+        setUser(data.user);
+      }
+    }
+
+    socket.on(`company-${companyId}-user`, onCompanyUserUseAuth);
+
     return () => {
       socket.disconnect();
     };
-  }
-  }, [socketManager, user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const handleLogin = async (userData) => {
     setLoading(true);
@@ -115,11 +118,12 @@ const useAuth = () => {
       const dueDate = data.user.company.dueDate;
       const hoje = moment(moment()).format("DD/MM/yyyy");
       const vencimento = moment(dueDate).format("DD/MM/yyyy");
-
+      
       var diff = moment(dueDate).diff(moment(moment()).format());
 
       var before = moment(moment().format()).isBefore(dueDate);
       var dias = moment.duration(diff).asDays();
+      var diasVenc = vencimento.valueOf() - hoje.valueOf()
 
       if (before === true) {
         localStorage.setItem("token", JSON.stringify(data.token));
@@ -136,8 +140,12 @@ const useAuth = () => {
         history.push("/tickets");
         setLoading(false);
       } else {
+        localStorage.setItem("companyId", companyId);
+        api.defaults.headers.Authorization = `Bearer ${data.token}`;
+        setIsAuth(true);
         toastError(`Opss! Sua assinatura venceu ${vencimento}.
 Entre em contato com o Suporte para mais informações! `);
+        history.push("/financeiro-aberto");
         setLoading(false);
       }
 
@@ -183,7 +191,7 @@ Entre em contato com o Suporte para mais informações! `);
     loading,
     handleLogin,
     handleLogout,
-    getCurrentUserInfo,
+    getCurrentUserInfo
   };
 };
 

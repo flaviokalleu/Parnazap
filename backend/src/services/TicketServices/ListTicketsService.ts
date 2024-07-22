@@ -25,6 +25,8 @@ interface Request {
   tags: number[];
   users: number[];
   companyId: number;
+  dateFrom?: string;
+  dateUntil?: string;
 }
 
 interface Response {
@@ -45,15 +47,19 @@ const ListTicketsService = async ({
   showAll,
   userId,
   withUnreadMessages,
-  companyId
+  companyId,
+  dateFrom,
+  dateUntil
 }: Request): Promise<Response> => {
-  let whereCondition: Filterable["where"] = {
-    [Op.or]: [{ userId }, { status: "pending" }],
-    queueId: { [Op.or]: [queueIds, null] }
-  };
-  let includeCondition: Includeable[];
+  // Verifica o perfil do usuário
+  const user = await ShowUserService(userId);
+  const isAdmin = user.profile === 'admin';
 
-  includeCondition = [
+  let whereCondition: Filterable["where"] = {
+    companyId
+  };
+
+  let includeCondition: Includeable[] = [
     {
       model: Contact,
       as: "contact",
@@ -78,18 +84,40 @@ const ListTicketsService = async ({
       model: Whatsapp,
       as: "whatsapp",
       attributes: ["name"]
-    },
+    }
   ];
 
-  if (showAll === "true") {
-    whereCondition = { queueId: { [Op.or]: [queueIds, null] } };
-  }
-
-  if (status) {
+  if (isAdmin) {
+    // Admin pode ver todos os tickets, incluindo os pendentes com mensagens lidas ou não
+    if (showAll === "true") {
+      whereCondition = {
+        queueId: { [Op.or]: [queueIds, null] }
+      };
+    }
+    if (status) {
+      whereCondition = {
+        ...whereCondition,
+        status
+      };
+    }
+    if (withUnreadMessages === "true") {
+      whereCondition = {
+        ...whereCondition,
+        unreadMessages: { [Op.gt]: 0 } // Inclui apenas tickets com mensagens não lidas
+      };
+    }
+  } else {
+    // Usuário normal vê apenas seus próprios tickets
     whereCondition = {
-      ...whereCondition,
-      status
+      userId
     };
+
+    if (withUnreadMessages === "true") {
+      whereCondition = {
+        ...whereCondition,
+        unreadMessages: { [Op.gt]: 0 }
+      };
+    }
   }
 
   if (searchParam) {
@@ -154,14 +182,14 @@ const ListTicketsService = async ({
     };
   }
 
-  if (withUnreadMessages === "true") {
-    const user = await ShowUserService(userId);
-    const userQueueIds = user.queues.map(queue => queue.id);
-
+  if (dateFrom && dateUntil) {
     whereCondition = {
-      [Op.or]: [{ userId }, { status: "pending" }],
-      queueId: { [Op.or]: [userQueueIds, null] },
-      unreadMessages: { [Op.gt]: 0 }
+      updatedAt: {
+        [Op.between]: [
+          +startOfDay(parseISO(dateFrom)),
+          +endOfDay(parseISO(dateUntil))
+        ]
+      }
     };
   }
 
@@ -210,11 +238,6 @@ const ListTicketsService = async ({
   const limit = 40;
   const offset = limit * (+pageNumber - 1);
 
-  whereCondition = {
-    ...whereCondition,
-    companyId
-  };
-
   const { count, rows: tickets } = await Ticket.findAndCountAll({
     where: whereCondition,
     include: includeCondition,
@@ -226,6 +249,7 @@ const ListTicketsService = async ({
   });
 
   const hasMore = count > offset + tickets.length;
+  console.log(tickets.length);
 
   return {
     tickets,

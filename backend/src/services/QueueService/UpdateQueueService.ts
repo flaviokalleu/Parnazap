@@ -3,6 +3,8 @@ import * as Yup from "yup";
 import AppError from "../../errors/AppError";
 import Queue from "../../models/Queue";
 import ShowQueueService from "./ShowQueueService";
+import { TypebotService } from "../TypebotService/apiTypebotService";
+import { N8nService } from "../N8nService/apiN8nService";
 
 interface QueueData {
   name?: string;
@@ -10,9 +12,17 @@ interface QueueData {
   greetingMessage?: string;
   outOfHoursMessage?: string;
   schedules?: any[];
-  orderQueue?: number;
-  integrationId?: number;
-  promptId?: number;
+  isChatbot?: boolean;
+  prioridade: number;
+  ativarRoteador?: boolean;
+  tempoRoteador: number;
+  workspaceTypebot?: string; 
+  typeChatbot?: string; 
+  typebotId?: string; 
+  publicId?: string;
+  resetChatbotMsg?: Boolean;
+  n8n?:string;
+  n8nId?:string;
 }
 
 const UpdateQueueService = async (
@@ -20,7 +30,7 @@ const UpdateQueueService = async (
   queueData: QueueData,
   companyId: number
 ): Promise<Queue> => {
-  const { color, name } = queueData;
+  const { color, name, prioridade, ativarRoteador, tempoRoteador } = queueData;
 
   const queueSchema = Yup.object().shape({
     name: Yup.string()
@@ -71,8 +81,26 @@ const UpdateQueueService = async (
 
   const queue = await ShowQueueService(queueId, companyId);
 
-  if (queue.companyId !== companyId) {
+  if (queue?.companyId !== companyId) {
     throw new AppError("Não é permitido alterar registros de outra empresa");
+  }
+
+
+
+  if (queueData?.typebotId) {
+    const { typebot } = await TypebotService.getTypebot(companyId, queueData.typebotId)
+    queueData = {
+      ...queueData,
+      publicId: typebot?.publicId
+    }
+  }
+
+  if(queueData?.n8n){
+    const n8n  = await N8nService.getN8N(companyId, queueData.n8n)
+    queueData = {
+      ...queueData,
+      n8n: n8n
+    }
   }
 
   await queue.update(queueData);

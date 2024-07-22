@@ -35,9 +35,6 @@ class User extends Model<User> {
 
   @Column
   email: string;
-  
-  @Column
-  allTicket: string;
 
   @Column(DataType.VIRTUAL)
   password: string;
@@ -53,11 +50,22 @@ class User extends Model<User> {
   @Column
   profile: string;
 
+  @ForeignKey(() => Whatsapp)
+  @Column
+  whatsappId: number;
+
+  @BelongsTo(() => Whatsapp)
+  whatsapp: Whatsapp;
+
   @Column
   super: boolean;
 
   @Column
   online: boolean;
+
+  @Default("")
+  @Column(DataType.TEXT)
+  farewellMessage: string;
 
   @CreatedAt
   createdAt: Date;
@@ -84,13 +92,6 @@ class User extends Model<User> {
     hooks: true
   })
   quickMessages: QuickMessage[];
-
-  @ForeignKey(() => Whatsapp)
-  @Column
-  whatsappId: number;
-
-  @BelongsTo(() => Whatsapp)
-  whatsapp: Whatsapp;
 
   @BeforeUpdate
   @BeforeCreate

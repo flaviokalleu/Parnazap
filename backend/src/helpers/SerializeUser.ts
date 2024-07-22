@@ -2,6 +2,7 @@ import Queue from "../models/Queue";
 import Company from "../models/Company";
 import User from "../models/User";
 import Setting from "../models/Setting";
+import Whatsapp from "../models/Whatsapp";
 
 interface SerializedUser {
   id: number;
@@ -12,7 +13,7 @@ interface SerializedUser {
   company: Company | null;
   super: boolean;
   queues: Queue[];
-  allTicket: string,
+  whatsapp: Whatsapp;
 }
 
 export const SerializeUser = async (user: User): Promise<SerializedUser> => {
@@ -25,6 +26,6 @@ export const SerializeUser = async (user: User): Promise<SerializedUser> => {
     company: user.company,
     super: user.super,
     queues: user.queues,
-	allTicket: user.allTicket,
+    whatsapp: user.whatsapp
   };
 };

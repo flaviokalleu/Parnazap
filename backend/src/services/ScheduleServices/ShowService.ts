@@ -3,6 +3,7 @@ import AppError from "../../errors/AppError";
 import Contact from "../../models/Contact";
 import User from "../../models/User";
 
+
 const ScheduleService = async (id: string | number, companyId: number): Promise<Schedule> => {
   const schedule = await Schedule.findByPk(id, {
     include: [

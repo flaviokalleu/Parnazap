@@ -106,17 +106,16 @@ const Announcements = () => {
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [searchParam, setSearchParam] = useState("");
   const [announcements, dispatch] = useReducer(reducer, []);
-
   const socketManager = useContext(SocketContext);
 
   // trava para nao acessar pagina que não pode  
   useEffect(() => {
     async function fetchData() {
       if (!user.super) {
-        toast.error("Esta empresa não possui permissão para acessar essa página! Estamos lhe redirecionando.");
+        toast.error("Sem permissão para acessar!");
         setTimeout(() => {
           history.push(`/`)
-        }, 1000);
+        }, 500);
       }
     }
     fetchData();
@@ -138,21 +137,24 @@ const Announcements = () => {
   }, [searchParam, pageNumber]);
 
   useEffect(() => {
-    const companyId = user.companyId;
-    const socket = socketManager.getSocket(companyId);
+    const companyId = localStorage.getItem("companyId");
+    const socket = socketManager.GetSocket(companyId);
 
-    socket.on(`company-announcement`, (data) => {
+    const onAnnouncement = (data) => {
       if (data.action === "update" || data.action === "create") {
         dispatch({ type: "UPDATE_ANNOUNCEMENTS", payload: data.record });
       }
       if (data.action === "delete") {
         dispatch({ type: "DELETE_ANNOUNCEMENT", payload: +data.id });
       }
-    });
+    }
+    
+    socket.on(`company-announcement`, onAnnouncement);
+    
     return () => {
       socket.disconnect();
     };
-  }, [socketManager, user.companyId]);
+  }, [socketManager]);
 
   const fetchAnnouncements = async () => {
     try {
@@ -186,13 +188,9 @@ const Announcements = () => {
     setAnnouncementModalOpen(true);
   };
 
-  const handleDeleteAnnouncement = async (announcement) => {
+  const handleDeleteAnnouncement = async (announcementId) => {
     try {
-      if (announcement.mediaName)
-      await api.delete(`/announcements/${announcement.id}/media-upload`);
-
-      await api.delete(`/announcements/${announcement.id}`);
-      
+      await api.delete(`/announcements/${announcementId}`);
       toast.success(i18n.t("announcements.toasts.deleted"));
     } catch (err) {
       toastError(err);
@@ -236,7 +234,7 @@ const Announcements = () => {
         }
         open={confirmModalOpen}
         onClose={setConfirmModalOpen}
-        onConfirm={() => handleDeleteAnnouncement(deletingAnnouncement)}
+        onConfirm={() => handleDeleteAnnouncement(deletingAnnouncement.id)}
       >
         {i18n.t("announcements.confirmationModal.deleteMessage")}
       </ConfirmationModal>
@@ -321,10 +319,10 @@ const Announcements = () => {
                     {translatePriority(announcement.priority)}
                   </TableCell>
                   <TableCell align="center">
-                    {announcement.mediaName ?? i18n.t("quickMessages.noAttachment")}
+                    {announcement.mediaName ?? "Sem anexo"}
                   </TableCell>
                   <TableCell align="center">
-                    {announcement.status ? i18n.t("announcements.active") : i18n.t("announcements.inactive")}
+                    {announcement.status ? "ativo" : "inativo"}
                   </TableCell>
                   <TableCell align="center">
                     <IconButton

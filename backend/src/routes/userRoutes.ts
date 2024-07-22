@@ -17,4 +17,10 @@ userRoutes.get("/users/:userId", isAuth, UserController.show);
 
 userRoutes.delete("/users/:userId", isAuth, UserController.remove);
 
+userRoutes.post("/users/findByEmail", UserController.findByEmail);
+
+userRoutes.post("/users/sendemail", UserController.sendEmail);
+
+userRoutes.post("/users/updatePassword", UserController.updatePasswordUser);
+
 export default userRoutes;

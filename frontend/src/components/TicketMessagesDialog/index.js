@@ -13,10 +13,11 @@ import {
 } from "@material-ui/core";
 import { useHistory } from "react-router-dom";
 import { AuthContext } from "../../context/Auth/AuthContext";
-import MessagesList from "../MessagesList";
+import MessagesListGhost from "../MessagesListGhost";
 import { ReplyMessageProvider } from "../../context/ReplyingMessage/ReplyingMessageContext";
 import TicketHeader from "../TicketHeader";
 import TicketInfo from "../TicketInfo";
+import { socketConnection } from "../../services/socket";
 import { SocketContext } from "../../context/Socket/SocketContext";
 
 const drawerWidth = 320;
@@ -60,14 +61,12 @@ export default function TicketMessagesDialog({ open, handleClose, ticketId }) {
   const history = useHistory();
   const classes = useStyles();
 
+  const socketManager = useContext(SocketContext);
   const { user } = useContext(AuthContext);
-
   const [, setDrawerOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [contact, setContact] = useState({});
   const [ticket, setTicket] = useState({});
-
-  const socketManager = useContext(SocketContext);
 
   useEffect(() => {
     let delayDebounceFn = null;
@@ -81,8 +80,8 @@ export default function TicketMessagesDialog({ open, handleClose, ticketId }) {
             const { queues, profile } = user;
 
             const queueAllowed = queues.find((q) => q.id === queueId);
-            if (queueAllowed === undefined && profile !== "admin") {
-              toast.error("Acesso não permitido");
+            if (queueAllowed === undefined && profile !== "admin" && profile !== "supervisor") {
+              toast.error("Sem Permissão!");
               history.push("/tickets");
               return;
             }
@@ -108,23 +107,27 @@ export default function TicketMessagesDialog({ open, handleClose, ticketId }) {
   useEffect(() => {
     const companyId = localStorage.getItem("companyId");
     let socket = null;
+    let onReturn = () => { };
 
     if (open) {
-      const socket = socketManager.getSocket(companyId);
-      socket.on("ready", () => socket.emit("joinChatBox", `${ticket.id}`));
+      socket = socketManager.GetSocket(companyId);
 
-      socket.on(`company-${companyId}-ticket`, (data) => {
-        if (data.action === "update" && data.ticket.id === ticket.id) {
+      const onConnectTicketMessagesDialog = () => {
+        socket.emit("joinChatBox", `${ticket.id}`);
+      }
+
+      const onCompanyTicketMessagesDialog = (data) => {
+        if (data.action === "update") {
           setTicket(data.ticket);
         }
 
-        if (data.action === "delete" && data.ticketId === ticket.id) {
-          // toast.success("Ticket deleted sucessfully.");
+        if (data.action === "delete") {
+          toast.success("Ticket deleted sucessfully.");
           history.push("/tickets");
         }
-      });
+      }
 
-      socket.on(`company-${companyId}-contact`, (data) => {
+      const onCompanyContactMessagesDialog = (data) => {
         if (data.action === "update") {
           setContact((prevState) => {
             if (prevState.id === data.contact?.id) {
@@ -133,14 +136,20 @@ export default function TicketMessagesDialog({ open, handleClose, ticketId }) {
             return prevState;
           });
         }
-      });
+      }
+
+      onReturn = () => {
+        if (socket !== null) {
+          socket.disconnect();
+        }
+      }
+
+      socketManager.onConnect(onConnectTicketMessagesDialog);
+      socket.on(`company-${companyId}-ticket`, onCompanyTicketMessagesDialog);
+      socket.on(`company-${companyId}-contact`, onCompanyContactMessagesDialog);
     }
 
-    return () => {
-      if (socket !== null) {
-        socket.disconnect();
-      }
-    };
+    return onReturn;
   }, [ticketId, ticket, history, open, socketManager]);
 
   const handleDrawerOpen = () => {
@@ -162,11 +171,11 @@ export default function TicketMessagesDialog({ open, handleClose, ticketId }) {
   const renderMessagesList = () => {
     return (
       <Box className={classes.root}>
-        <MessagesList
+        <MessagesListGhost
           ticket={ticket}
           ticketId={ticket.id}
           isGroup={ticket.isGroup}
-        ></MessagesList>
+        ></MessagesListGhost>
       </Box>
     );
   };

@@ -1,10 +1,10 @@
-import React, { useEffect, useReducer, useState, useContext } from "react";
+import React, { useContext, useEffect, useReducer, useState } from "react";
 import { makeStyles } from "@material-ui/core/styles";
 import toastError from "../../errors/toastError";
 import Popover from "@material-ui/core/Popover";
-import AnnouncementIcon from "@material-ui/icons/Announcement";
-import Notifications from "@material-ui/icons/Notifications"
-
+//import ReportProblemOutlinedIcon from '@material-ui/icons/ReportProblemOutlined';
+//import AnnouncementIcon from "@material-ui/icons/Announcement";
+import NotificationImportantOutlinedIcon from '@material-ui/icons/NotificationImportantOutlined';
 import {
   Avatar,
   Badge,
@@ -30,8 +30,8 @@ import { SocketContext } from "../../context/Socket/SocketContext";
 const useStyles = makeStyles((theme) => ({
   mainPaper: {
     flex: 1,
-    maxHeight: 3000,
-    maxWidth: 5000,
+    maxHeight: 300,
+    maxWidth: 500,
     padding: theme.spacing(1),
     overflowY: "scroll",
     ...theme.scrollbarStyles,
@@ -40,7 +40,7 @@ const useStyles = makeStyles((theme) => ({
 
 function AnnouncementDialog({ announcement, open, handleClose }) {
   const getMediaPath = (filename) => {
-    return `${process.env.REACT_APP_BACKEND_URL}/public/${filename}`;
+    return `${process.env.REACT_APP_BACKEND_URL}public/company${announcement.companyId}/${filename}`;
   };
   return (
     <Dialog
@@ -57,7 +57,7 @@ function AnnouncementDialog({ announcement, open, handleClose }) {
               border: "1px solid #f1f1f1",
               margin: "0 auto 20px",
               textAlign: "center",
-              width: "400px",
+              width: "90%",
               height: 300,
               backgroundImage: `url(${getMediaPath(announcement.mediaPath)})`,
               backgroundRepeat: "no-repeat",
@@ -139,7 +139,6 @@ export default function AnnouncementsPopover() {
   const [invisible, setInvisible] = useState(false);
   const [announcement, setAnnouncement] = useState({});
   const [showAnnouncementDialog, setShowAnnouncementDialog] = useState(false);
-
   const socketManager = useContext(SocketContext);
 
   useEffect(() => {
@@ -158,13 +157,9 @@ export default function AnnouncementsPopover() {
 
   useEffect(() => {
     const companyId = localStorage.getItem("companyId");
-    const socket = socketManager.getSocket(companyId);
-    
-    if (!socket) {
-      return () => {}; 
-    }
+    const socket = socketManager.GetSocket(companyId);
 
-    socket.on(`company-announcement`, (data) => {
+	const onCompanyAnnouncement = (data) => {
       if (data.action === "update" || data.action === "create") {
         dispatch({ type: "UPDATE_ANNOUNCEMENTS", payload: data.record });
         setInvisible(false);
@@ -172,7 +167,10 @@ export default function AnnouncementsPopover() {
       if (data.action === "delete") {
         dispatch({ type: "DELETE_ANNOUNCEMENT", payload: +data.id });
       }
-    });
+    };
+
+    socket.on(`company-announcement`, onCompanyAnnouncement);
+
     return () => {
       socket.disconnect();
     };
@@ -224,8 +222,8 @@ export default function AnnouncementsPopover() {
     }
   };
 
-  const getMediaPath = (filename) => {
-    return `${process.env.REACT_APP_BACKEND_URL}/public/${filename}`;
+  const getMediaPath = (filename, companyId) => {
+    return `${process.env.REACT_APP_BACKEND_URL}public/company${companyId}/${filename}`;
   };
 
   const handleShowAnnouncementDialog = (record) => {
@@ -245,17 +243,17 @@ export default function AnnouncementsPopover() {
         handleClose={() => setShowAnnouncementDialog(false)}
       />
       <IconButton
+        style={{ color: "white" }}
         variant="contained"
         aria-describedby={id}
         onClick={handleClick}
-        style={{ color: "white" }}
       >
         <Badge
-          color="secondary"
+          color="error"
           variant="dot"
           invisible={invisible || announcements.length < 1}
         >
-          <Notifications />
+          <NotificationImportantOutlinedIcon />
         </Badge>
       </IconButton>
       <Popover
@@ -287,7 +285,7 @@ export default function AnnouncementsPopover() {
                 <ListItem
                   key={key}
                   style={{
-                    //background: key % 2 === 0 ? "#ededed" : "white",
+                    background: key % 2 === 0 ? "#ededed" : "white",
                     border: "1px solid #eee",
                     borderLeft: borderPriority(item.priority),
                     cursor: "pointer",
@@ -298,7 +296,7 @@ export default function AnnouncementsPopover() {
                     <ListItemAvatar>
                       <Avatar
                         alt={item.mediaName}
-                        src={getMediaPath(item.mediaPath)}
+                        src={getMediaPath(item.mediaPath, item.companyId)}
                       />
                     </ListItemAvatar>
                   )}

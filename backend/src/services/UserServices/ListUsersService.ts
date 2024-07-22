@@ -2,6 +2,7 @@ import { Sequelize, Op } from "sequelize";
 import Queue from "../../models/Queue";
 import Company from "../../models/Company";
 import User from "../../models/User";
+import Whatsapp from "../../models/Whatsapp";
 
 interface Request {
   searchParam?: string;
@@ -42,13 +43,14 @@ const ListUsersService = async ({
 
   const { count, rows: users } = await User.findAndCountAll({
     where: whereCondition,
-    attributes: ["name", "id", "email", "companyId", "profile", "createdAt"],
+    attributes: ["name", "id", "email", "companyId", "profile", "createdAt", "super", "farewellMessage"],
     limit,
     offset,
     order: [["createdAt", "DESC"]],
     include: [
       { model: Queue, as: "queues", attributes: ["id", "name", "color"] },
-      { model: Company, as: "company", attributes: ["id", "name"] }
+      { model: Company, as: "company", attributes: ["id", "name"] },
+      { model: Whatsapp, as: "whatsapp", attributes: ["id", "name"] },
     ]
   });
 

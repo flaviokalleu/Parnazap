@@ -1,26 +1,29 @@
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, { useState, useEffect, useRef, useContext } from "react";
 
-import { Field, Form, Formik } from "formik";
-import { head } from "lodash";
-import { toast } from "react-toastify";
 import * as Yup from "yup";
+import { Formik, Form, Field } from "formik";
+import { toast } from "react-toastify";
+import { head } from "lodash";
 
+import { makeStyles } from "@material-ui/core/styles";
+import { green } from "@material-ui/core/colors";
 import Button from "@material-ui/core/Button";
-import CircularProgress from "@material-ui/core/CircularProgress";
+import IconButton from "@material-ui/core/IconButton";
+import TextField from "@material-ui/core/TextField";
 import Dialog from "@material-ui/core/Dialog";
 import DialogActions from "@material-ui/core/DialogActions";
 import DialogContent from "@material-ui/core/DialogContent";
 import DialogTitle from "@material-ui/core/DialogTitle";
-import IconButton from "@material-ui/core/IconButton";
-import TextField from "@material-ui/core/TextField";
-import { green } from "@material-ui/core/colors";
-import { makeStyles } from "@material-ui/core/styles";
+import CircularProgress from "@material-ui/core/CircularProgress";
 import AttachFileIcon from "@material-ui/icons/AttachFile";
 import DeleteOutlineIcon from "@material-ui/icons/DeleteOutline";
+import Chip from '@material-ui/core/Chip';
 
-import moment from "moment";
 import { i18n } from "../../translate/i18n";
+import moment from "moment";
 
+import api from "../../services/api";
+import toastError from "../../errors/toastError";
 import {
   Box,
   FormControl,
@@ -32,19 +35,12 @@ import {
   Tabs,
 } from "@material-ui/core";
 import { AuthContext } from "../../context/Auth/AuthContext";
-import toastError from "../../errors/toastError";
-import api from "../../services/api";
 import ConfirmationModal from "../ConfirmationModal";
 
 const useStyles = makeStyles((theme) => ({
   root: {
     display: "flex",
     flexWrap: "wrap",
-    backgroundColor: "#fff"
-  },
-
-  tabmsg: {
-    backgroundColor: theme.palette.campaigntab,
   },
 
   textField: {
@@ -91,7 +87,6 @@ const CampaignModal = ({
   const isMounted = useRef(true);
   const { user } = useContext(AuthContext);
   const { companyId } = user;
-  const [file, setFile] = useState(null);
 
   const initialState = {
     name: "",
@@ -108,40 +103,30 @@ const CampaignModal = ({
     status: "INATIVA", // INATIVA, PROGRAMADA, EM_ANDAMENTO, CANCELADA, FINALIZADA,
     confirmation: false,
     scheduledAt: "",
-    whatsappId: "",
+    //whatsappId: "",
     contactListId: "",
+    tagId: '',
     tagListId: "Nenhuma",
+    groupListId: "Nenhum",
     companyId,
   };
 
   const [campaign, setCampaign] = useState(initialState);
   const [whatsapps, setWhatsapps] = useState([]);
+  const [selectedWhatsapps, setSelectedWhatsapps] = useState([]);
   const [contactLists, setContactLists] = useState([]);
+  const [groupLists, setGroupLists] = useState([]);
+  const [tagLists, setTagLists] = useState(0);
   const [messageTab, setMessageTab] = useState(0);
   const [attachment, setAttachment] = useState(null);
   const [confirmationOpen, setConfirmationOpen] = useState(false);
   const [campaignEditable, setCampaignEditable] = useState(true);
   const attachmentFile = useRef(null);
-  const [tagLists, setTagLists] = useState([]);
 
   useEffect(() => {
     return () => {
       isMounted.current = false;
     };
-  }, []);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const { data } = await api.get("/files/", {
-          params: { companyId }
-        });
-
-        setFile(data.files);
-      } catch (err) {
-        toastError(err);
-      }
-    })();
   }, []);
 
   useEffect(() => {
@@ -157,26 +142,52 @@ const CampaignModal = ({
         .then(({ data }) => setContactLists(data));
 
       api
-        .get(`/whatsapp`, { params: { companyId, session: 0 } })
-        .then(({ data }) => setWhatsapps(data));
+  		.get(`/whatsapp`, { params: { companyId, session: 0 } })
+  		.then(({ data }) => {
+    		// Mapear os dados recebidos da API para adicionar a propriedade 'selected'
+    		const mappedWhatsapps = data.map((whatsapp) => ({
+      		...whatsapp,
+      		selected: false,
+    	}));
+
+        setWhatsapps(mappedWhatsapps);
+      });
 
       api.get(`/tags`, { params: { companyId } })
-        .then(({ data }) => {
-          const fetchedTags = data.tags;
-          // Perform any necessary data transformation here
-          const formattedTagLists = fetchedTags.map((tag) => ({
-            id: tag.id,
-            name: tag.name,
-          }));
-          setTagLists(formattedTagLists);
-        })
-        .catch((error) => {
-          console.error("Error retrieving tags:", error);
-        });
-        
+      .then(({ data }) => {
+        const fetchedTags = data.tags;
+        // Perform any necessary data transformation here
+        const formattedTagLists = fetchedTags.map((tag) => ({
+          id: tag.id,
+          name: tag.name,
+        }));
+        setTagLists(formattedTagLists);
+      })
+      .catch((error) => {
+        console.error("Error retrieving tags:", error);
+      });
+    
+      api.get(`/groups`, { params: { companyId } })
+      .then(({ data }) => {
+        const fetchedGroups = data.groups;
+      
+        //console.log(fetchedGroups );
+      
+        // Perform any necessary data transformation here
+        const formattedGroupLists = fetchedGroups.map((group) => ({
+          id: group.id,
+          subject: group.subject,
+        }));
+        setGroupLists(formattedGroupLists);
+      })
+      .catch((error) => {
+        console.error("Error retrieving groups:", error);
+      });
+      
       if (!campaignId) return;
 
       api.get(`/campaigns/${campaignId}`).then(({ data }) => {
+        console.log(data)
         setCampaign((prev) => {
           let prevCampaignData = Object.assign({}, prev);
 
@@ -193,6 +204,8 @@ const CampaignModal = ({
       });
     }
   }, [campaignId, open, initialValues, companyId]);
+
+  
 
   useEffect(() => {
     const now = moment();
@@ -220,7 +233,15 @@ const CampaignModal = ({
 
   const handleSaveCampaign = async (values) => {
     try {
-      const dataValues = {};
+      const dataValues = {
+        ...values,  // Merge the existing values object
+        whatsappId: selectedWhatsapps.join(","),
+        tagId: tagLists
+      };
+    
+      //console.log(values);
+      //console.log(selectedWhatsapps);
+    
       Object.entries(values).forEach(([key, value]) => {
         if (key === "scheduledAt" && value !== "" && value !== null) {
           dataValues[key] = moment(value).format("YYYY-MM-DD HH:mm:ss");
@@ -283,7 +304,7 @@ const CampaignModal = ({
         placeholder={i18n.t("campaigns.dialog.form.messagePlaceholder")}
         multiline={true}
         variant="outlined"
-        helperText="Utilize variáveis como {nome}, {numero}, {email} ou defina variáveis personalziadas."
+        helperText="Utilize variáveis como {nome}, {numero}, {email} ou defina variáveis personalizadas."
         disabled={!campaignEditable && campaign.status !== "CANCELADA"}
       />
     );
@@ -378,7 +399,7 @@ const CampaignModal = ({
             <Form>
               <DialogContent dividers>
                 <Grid spacing={2} container>
-                  <Grid xs={12} item>
+                  <Grid xs={12} md={4} item>
                     <Field
                       as={TextField}
                       label={i18n.t("campaigns.dialog.form.name")}
@@ -392,7 +413,7 @@ const CampaignModal = ({
                       disabled={!campaignEditable}
                     />
                   </Grid>
-                  {/* <Grid xs={12} md={3} item>
+                  <Grid xs={12} md={4} item>
                     <FormControl
                       variant="outlined"
                       margin="dense"
@@ -420,7 +441,7 @@ const CampaignModal = ({
                         <MenuItem value={true}>Habilitada</MenuItem>
                       </Field>
                     </FormControl>
-                  </Grid> */}
+                  </Grid>
                   <Grid xs={12} md={4} item>
                     <FormControl
                       variant="outlined"
@@ -459,65 +480,69 @@ const CampaignModal = ({
                     </FormControl>
                   </Grid>
                   <Grid xs={12} md={4} item>
-                    <FormControl
-                      variant="outlined"
-                      margin="dense"
-                      fullWidth
-                      className={classes.formControl}
+                  <FormControl
+                    variant="outlined"
+                    margin="dense"
+                    fullWidth
+                    className={classes.formControl}
+                  >
+                    <InputLabel id="tagList-selection-label">
+                      {i18n.t("campaigns.dialog.form.tagList")}
+                    </InputLabel>
+                    <Field
+                      as={Select}
+                      label={i18n.t("campaigns.dialog.form.tagList")}
+                      placeholder={i18n.t("campaigns.dialog.form.tagList")}
+                      labelId="tagId-selection-label"
+                      id="tagId"
+                      name="tagId"
+                      error={touched.tagListId && Boolean(errors.tagListId)}
+                      disabled={!campaignEditable}
                     >
-                      <InputLabel id="tagList-selection-label">
-                        {i18n.t("campaigns.dialog.form.tagList")}
-                      </InputLabel>
-                      <Field
-                        as={Select}
-                        label={i18n.t("campaigns.dialog.form.tagList")}
-                        placeholder={i18n.t("campaigns.dialog.form.tagList")}
-                        labelId="tagList-selection-label"
-                        id="tagListId"
-                        name="tagListId"
-                        error={touched.tagListId && Boolean(errors.tagListId)}
-                        disabled={!campaignEditable}
-                      >
-                        <MenuItem value="">Nenhuma</MenuItem>
-                        {Array.isArray(tagLists) &&
-                          tagLists.map((tagList) => (
-                            <MenuItem key={tagList.id} value={tagList.id}>
-                              {tagList.name}
-                            </MenuItem>
-                          ))}
-                      </Field>
-                    </FormControl>
-                  </Grid>
-                  <Grid xs={12} md={4} item>
-                    <FormControl
-                      variant="outlined"
-                      margin="dense"
-                      fullWidth
-                      className={classes.formControl}
+                      <MenuItem value="">Nenhuma</MenuItem>
+                      {Array.isArray(tagLists) &&
+                        tagLists.map((tagList) => (
+                          <MenuItem key={tagList.id} value={tagList.id}>
+                            {tagList.name}
+                          </MenuItem>
+                        ))}
+                    </Field>
+                  </FormControl>
+                </Grid>
+                
+                <Grid xs={12} md={4} item>
+                  <FormControl
+                    variant="outlined"
+                    margin="dense"
+                    fullWidth
+                    className={classes.formControl}
+                  >
+                    <InputLabel id="groupList-selection-label">
+                      {i18n.t("campaigns.dialog.form.groupList")}
+                    </InputLabel>
+                    <Field
+                      as={Select}
+                      label={i18n.t("campaigns.dialog.form.groupList")}
+                      placeholder={i18n.t("campaigns.dialog.form.groupList")}
+                      labelId="groupList-selection-label"
+                      id="groupListId"
+                      name="groupListId"
+                      error={touched.groupListId && Boolean(errors.groupListId)}
+                      disabled={!campaignEditable}
                     >
-                      <InputLabel id="whatsapp-selection-label">
-                        {i18n.t("campaigns.dialog.form.whatsapp")}
-                      </InputLabel>
-                      <Field
-                        as={Select}
-                        label={i18n.t("campaigns.dialog.form.whatsapp")}
-                        placeholder={i18n.t("campaigns.dialog.form.whatsapp")}
-                        labelId="whatsapp-selection-label"
-                        id="whatsappId"
-                        name="whatsappId"
-                        error={touched.whatsappId && Boolean(errors.whatsappId)}
-                        disabled={!campaignEditable}
-                      >
-                        <MenuItem value="">Nenhuma</MenuItem>
-                        {whatsapps &&
-                          whatsapps.map((whatsapp) => (
-                            <MenuItem key={whatsapp.id} value={whatsapp.id}>
-                              {whatsapp.name}
-                            </MenuItem>
-                          ))}
-                      </Field>
-                    </FormControl>
-                  </Grid>
+                      <MenuItem value="">Nenhum</MenuItem>
+                      {Array.isArray(groupLists) &&
+                        groupLists.map((groupList) => (
+                          <MenuItem key={groupList.id} value={groupList.id}>
+                            {groupList.subject}
+                          </MenuItem>
+                        ))}
+                    </Field>
+                  </FormControl>
+                </Grid>
+
+
+
                   <Grid xs={12} md={4} item>
                     <Field
                       as={TextField}
@@ -536,42 +561,59 @@ const CampaignModal = ({
                       disabled={!campaignEditable}
                     />
                   </Grid>
-                  <Grid xs={12} md={4} item>
-                  <FormControl
+                  
+                  <Grid xs={12} md={12} item>
+                    <FormControl
                       variant="outlined"
                       margin="dense"
-                      className={classes.FormControl}
                       fullWidth
+                      className={classes.formControl}
                     >
-                      <InputLabel id="fileListId-selection-label">{i18n.t("campaigns.dialog.form.fileList")}</InputLabel>
+                      <InputLabel id="whatsapp-selection-label">
+                        {i18n.t("campaigns.dialog.form.whatsapp")}
+                      </InputLabel>
                       <Field
                         as={Select}
-                        label={i18n.t("campaigns.dialog.form.fileList")}
-                        name="fileListId"
-                        id="fileListId"
-                        placeholder={i18n.t("campaigns.dialog.form.fileList")}
-                        labelId="fileListId-selection-label"
-                        value={values.fileListId || ""}
+                        multiple 
+                        label={i18n.t("campaigns.dialog.form.whatsapp")}
+                        placeholder={i18n.t("campaigns.dialog.form.whatsapp")}
+                        labelId="whatsapp-selection-label"
+                        id="whatsappIds"
+                        name="whatsappIds"
+                        error={touched.whatsappId && Boolean(errors.whatsappId)}
+                        disabled={!campaignEditable}
+                        value={selectedWhatsapps}  
+                        onChange={(event) => setSelectedWhatsapps(event.target.value)} 
+                        renderValue={(selected) => (
+                          <div>
+                            {selected.map((value) => (
+                              <Chip key={value} label={whatsapps.find((whatsapp) => whatsapp.id === value).name} />
+                            ))}
+                          </div>
+                        )}
                       >
-                        <MenuItem value={""} >{"Nenhum"}</MenuItem>
-                        {file.map(f => (
-                          <MenuItem key={f.id} value={f.id}>
-                            {f.name}
-                          </MenuItem>
-                        ))}
+                        {whatsapps &&
+                          whatsapps.map((whatsapp) => (
+                            <MenuItem key={whatsapp.id} value={whatsapp.id}>
+                              {whatsapp.name}
+                            </MenuItem>
+                          ))}
                       </Field>
                     </FormControl>
                   </Grid>
+                  
+                  
                   <Grid xs={12} item>
                     <Tabs
                       value={messageTab}
                       indicatorColor="primary"
                       textColor="primary"
-                      className={classes.tabmsg}
                       onChange={(e, v) => setMessageTab(v)}
                       variant="fullWidth"
                       centered
                       style={{
+                        background: "#f2f2f2",
+                        border: "1px solid #e6e6e6",
                         borderRadius: 2,
                       }}
                     >
@@ -694,9 +736,9 @@ const CampaignModal = ({
                       {campaignEditable && (
                         <IconButton
                           onClick={() => setConfirmationOpen(true)}
-                          color="secondary"
+                          color="primary"
                         >
-                          <DeleteOutlineIcon />
+                          <DeleteOutlineIcon color="secondary" />
                         </IconButton>
                       )}
                     </Grid>
@@ -704,15 +746,6 @@ const CampaignModal = ({
                 </Grid>
               </DialogContent>
               <DialogActions>
-                {campaign.status === "CANCELADA" && (
-                  <Button
-                    color="primary"
-                    onClick={() => restartCampaign()}
-                    variant="outlined"
-                  >
-                    {i18n.t("campaigns.dialog.buttons.restart")}
-                  </Button>
-                )}
                 {campaign.status === "EM_ANDAMENTO" && (
                   <Button
                     color="primary"
@@ -734,7 +767,7 @@ const CampaignModal = ({
                 )}
                 <Button
                   onClick={handleClose}
-                  color="secondary"
+                  color="primary"
                   disabled={isSubmitting}
                   variant="outlined"
                 >

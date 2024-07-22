@@ -28,6 +28,12 @@ class Tag extends Model<Tag> {
   @Column
   color: string;
 
+  @Column
+  kanban: number;
+
+  @Column
+  order: Number;
+
   @HasMany(() => TicketTag)
   ticketTags: TicketTag[];
 
@@ -46,9 +52,6 @@ class Tag extends Model<Tag> {
 
   @UpdatedAt
   updatedAt: Date;
-
-  @Column
-  kanban: number;
 }
 
 export default Tag;

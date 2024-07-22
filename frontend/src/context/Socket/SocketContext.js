@@ -1,5 +1,6 @@
 import { createContext } from "react";
 import openSocket from "socket.io-client";
+import { getBackendUrl } from "../../config";
 import { isExpired, decodeToken } from "react-jwt";
 
 class ManagedSocket {
@@ -69,13 +70,13 @@ class DummySocket {
   disconnect() {}
 }
 
-const SocketManager = {
+const socketManager = {
   currentCompanyId: -1,
   currentUserId: -1,
   currentSocket: null,
   socketReady: false,
 
-  getSocket: function(companyId) {
+  GetSocket: function(companyId) {
     let userId = null;
     if (localStorage.getItem("userId")) {
       userId = localStorage.getItem("userId");
@@ -95,8 +96,6 @@ const SocketManager = {
         this.currentSocket.removeAllListeners();
         this.currentSocket.disconnect();
         this.currentSocket = null;
-        this.currentCompanyId = null;
-		    this.currentUserId = null;
       }
 
       let token = JSON.parse(localStorage.getItem("token"));
@@ -115,7 +114,7 @@ const SocketManager = {
       this.currentCompanyId = companyId;
       this.currentUserId = userId;
       
-      this.currentSocket = openSocket(process.env.REACT_APP_BACKEND_URL, {
+      this.currentSocket = openSocket(getBackendUrl(), {
         transports: ["websocket"],
         pingTimeout: 18000,
         pingInterval: 18000,
@@ -186,4 +185,4 @@ const SocketManager = {
 
 const SocketContext = createContext()
 
-export { SocketContext, SocketManager };
+export { SocketContext, socketManager };

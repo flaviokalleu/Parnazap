@@ -33,14 +33,19 @@ import ChatMessage from "../models/ChatMessage";
 import Invoices from "../models/Invoices";
 import Subscriptions from "../models/Subscriptions";
 import BaileysChats from "../models/BaileysChats";
-import Files from "../models/Files";
-import FilesOptions from "../models/FilesOptions";
-import Prompt from "../models/Prompt";
-import QueueIntegrations from "../models/QueueIntegrations";
+import Rating from "../models/Rating";
+import RatingOption from "../models/RatingOption";
+import Groups from "../models/Groups";
+import Oportunidade from "../models/Oportunidade";
+import { Origem } from '../models/Origem';
+import { Motivo } from '../models/Motivo';
+import { Classificacao } from '../models/Classificacao';
+import { Declinio } from '../models/Declinio';
+import Colaborador from '../models/Colaborador';
+import OrdemServico from '../models/OrdemServico';
 
 // eslint-disable-next-line
 const dbConfig = require("../config/database");
-// import dbConfig from "../config/database";
 
 const sequelize = new Sequelize(dbConfig);
 
@@ -79,10 +84,16 @@ const models = [
   Invoices,
   Subscriptions,
   BaileysChats,
-  Files,
-  FilesOptions,
-  Prompt,
-  QueueIntegrations,
+  Rating,
+  RatingOption,
+  Groups,
+  Oportunidade,
+  Origem,
+  Motivo,
+  Classificacao,
+  Declinio,
+  Colaborador,
+  OrdemServico
 ];
 
 sequelize.addModels(models);

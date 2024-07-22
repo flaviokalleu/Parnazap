@@ -43,6 +43,7 @@ import useContactLists from "../../hooks/useContactLists";
 import { Grid } from "@material-ui/core";
 
 import planilhaExemplo from "../../assets/planilha.xlsx";
+import { socketConnection } from "../../services/socket";
 import { SocketContext } from "../../context/Socket/SocketContext";
 
 const reducer = (state, action) => {
@@ -102,6 +103,7 @@ const ContactListItems = () => {
   const classes = useStyles();
 
   const { user } = useContext(AuthContext);
+  const socketManager = useContext(SocketContext);
   const { contactListId } = useParams();
   const history = useHistory();
 
@@ -119,8 +121,6 @@ const ContactListItems = () => {
   const fileUploadRef = useRef(null);
 
   const { findById: findContactList } = useContactLists();
-
-  const socketManager = useContext(SocketContext);
 
   useEffect(() => {
     findContactList(contactListId).then((data) => {
@@ -156,9 +156,9 @@ const ContactListItems = () => {
 
   useEffect(() => {
     const companyId = localStorage.getItem("companyId");
-    const socket = socketManager.getSocket(companyId);
+    const socket = socketManager.GetSocket(companyId);
 
-    socket.on(`company-${companyId}-ContactListItem`, (data) => {
+    const onContactListItem = (data) => {
       if (data.action === "update" || data.action === "create") {
         dispatch({ type: "UPDATE_CONTACTS", payload: data.record });
       }
@@ -170,17 +170,17 @@ const ContactListItems = () => {
       if (data.action === "reload") {
         dispatch({ type: "LOAD_CONTACTS", payload: data.records });
       }
-    });
+    }
 
-    socket.on(
-      `company-${companyId}-ContactListItem-${contactListId}`,
-      (data) => {
+    const onContactListItemId = (data) => {
         if (data.action === "reload") {
           dispatch({ type: "LOAD_CONTACTS", payload: data.records });
         }
       }
-    );
 
+    socket.on(`company-${companyId}-ContactListItem`, onContactListItem);
+    socket.on(`company-${companyId}-ContactListItem-${contactListId}`, onContactListItemId);
+  
     return () => {
       socket.disconnect();
     };

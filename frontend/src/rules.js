@@ -3,6 +3,15 @@ const rules = {
 		static: [],
 	},
 
+	supervisor: {
+		static: [
+			"dashboard:view",
+			"drawer-supervisor-items:view",
+			"ticket-options:deleteTicket",
+			"contacts-page:deleteContact",
+		],
+	},
+
 	admin: {
 		static: [
 			"dashboard:view",
@@ -14,7 +23,8 @@ const rules = {
 			"contacts-page:deleteContact",
 			"connections-page:actionButtons",
 			"connections-page:addConnection",
-			"connections-page:editOrDeleteConnection"
+			"connections-page:editOrDeleteConnection",
+            "contact-page:exports"
 		],
 	},
 };

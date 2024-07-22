@@ -17,7 +17,7 @@ import ContactCustomField from "./ContactCustomField";
 import Ticket from "./Ticket";
 import Company from "./Company";
 import Schedule from "./Schedule";
-import Whatsapp from "./Whatsapp";
+import User from "./User";
 
 @Table
 class Contact extends Model<Contact> {
@@ -47,6 +47,22 @@ class Contact extends Model<Contact> {
   @Column
   isGroup: boolean;
 
+  @Default(false)
+  @Column
+  disableBot: boolean;
+
+  @Default(true)
+  @Column
+  acceptAudioMessage: boolean;
+
+  @Default(true)
+  @Column
+  active: boolean;
+
+  @Default("whatsapp")
+  @Column
+  channel: string;
+
   @CreatedAt
   createdAt: Date;
 
@@ -66,6 +82,9 @@ class Contact extends Model<Contact> {
   @BelongsTo(() => Company)
   company: Company;
 
+  @Column
+  walleteUserId: number;
+
   @HasMany(() => Schedule, {
     onUpdate: "CASCADE",
     onDelete: "CASCADE",
@@ -73,12 +92,7 @@ class Contact extends Model<Contact> {
   })
   schedules: Schedule[];
 
-  @ForeignKey(() => Whatsapp)
-  @Column
-  whatsappId: number;
 
-  @BelongsTo(() => Whatsapp)
-  whatsapp: Whatsapp;
 }
 
 export default Contact;

@@ -88,7 +88,7 @@ function SchedulesForm(props) {
                             >
                             {({ field }) => (
                               <NumberFormat
-                                label="Hora de Inicial"
+                                label="Horário Inicial"
                                 {...field}
                                 variant="outlined"
                                 margin="dense"
@@ -103,7 +103,7 @@ function SchedulesForm(props) {
                             >
                             {({ field }) => (
                               <NumberFormat
-                                label="Hora de Final"
+                                label="Horário Final"
                                 {...field}
                                 variant="outlined"
                                 margin="dense"

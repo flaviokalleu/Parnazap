@@ -5,7 +5,6 @@ import User from "../../models/User";
 import Queue from "../../models/Queue";
 import Tag from "../../models/Tag";
 import Whatsapp from "../../models/Whatsapp";
-import Prompt from "../../models/Prompt";
 
 const ShowTicketService = async (
   id: string | number,
@@ -16,7 +15,7 @@ const ShowTicketService = async (
       {
         model: Contact,
         as: "contact",
-        attributes: ["id", "name", "number", "email", "profilePicUrl"],
+        attributes: ["id", "name", "number", "email", "profilePicUrl", "acceptAudioMessage", "active", "disableBot", "walleteUserId"],
         include: ["extraInfo"]
       },
       {
@@ -27,8 +26,7 @@ const ShowTicketService = async (
       {
         model: Queue,
         as: "queue",
-        attributes: ["id", "name", "color"],
-        include: ["prompt", "queueIntegrations"]
+        attributes: ["id", "name", "color","typeChatbot","workspaceTypebot","typebotId","publicId","resetChatbotMsg"]
       },
       {
         model: Whatsapp,
@@ -44,7 +42,7 @@ const ShowTicketService = async (
   });
 
   if (ticket?.companyId !== companyId) {
-    throw new AppError("Não é possível consultar registros de outra empresa");
+    throw new AppError("Não é possível consultar registros de outra empresa!");
   }
 
   if (!ticket) {

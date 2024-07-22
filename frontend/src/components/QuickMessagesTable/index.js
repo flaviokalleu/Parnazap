@@ -49,14 +49,14 @@ function QuickMessagesTable(props) {
                                 size="small"
                                 onClick={() => handleEdit(message)}
                             >
-                                <EditIcon />
+                                <EditIcon color="secondary" />
                             </IconButton>
 
                             <IconButton
                                 size="small"
                                 onClick={() => handleDelete(message)}
                             >
-                                <DeleteOutlineIcon />
+                                <DeleteOutlineIcon color="secondary" />
                             </IconButton>
                         </TableCell>
                     ) : null}

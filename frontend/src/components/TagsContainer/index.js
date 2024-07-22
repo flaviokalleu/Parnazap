@@ -5,7 +5,7 @@ import { isArray, isString } from "lodash";
 import toastError from "../../errors/toastError";
 import api from "../../services/api";
 
-export function TagsContainer({ ticket }) {
+export function TagsContainer ({ ticket }) {
 
     const [tags, setTags] = useState([]);
     const [selecteds, setSelecteds] = useState([]);
@@ -62,7 +62,7 @@ export function TagsContainer({ ticket }) {
             if (isArray(value)) {
                 for (let item of value) {
                     if (isString(item)) {
-                        const newTag = await createTag({ name: item })
+                        const newTag = await createTag({ name: item, kanban: "0" })
                         optionsChanged.push(newTag);
                     } else {
                         optionsChanged.push(item);
@@ -78,7 +78,7 @@ export function TagsContainer({ ticket }) {
     }
 
     return (
-        <Paper style={{ padding: 12 }}>
+        <Paper style={{padding: 7, borderRadius: '0px'}}>
             <Autocomplete
                 multiple
                 size="small"
@@ -86,31 +86,32 @@ export function TagsContainer({ ticket }) {
                 value={selecteds}
                 freeSolo
                 onChange={(e, v, r) => onChange(v, r)}
-                getOptionLabel={(option) => option.name}
-                renderTags={(value, getTagProps) =>
-                    value.map((option, index) => (
-                        <Chip
-                            variant="outlined"
-                            style={{
-                                background: option.color || '#eee',
-                                color: "#FFF",
-                                marginRight: 1,
-                                fontWeight: 600,
-                                borderRadius: 3,
-                                fontSize: "0.8em",
-                                whiteSpace: "nowrap"
-                            }}
-                            label={option.name.toUpperCase()}
-                            {...getTagProps({ index })}
-                            size="small"
-                        />
-                    ))
-                }
+                getOptionLabel={(option) => option.name.toUpperCase()}
+renderTags={(value, getTagProps) =>
+  value.map((option, index) => {
+    if (option) {
+      return (
+        <Chip
+          variant="outlined"
+          style={{
+            backgroundColor: option.color || '#eee',
+            textShadow: '1px 1px 1px #000',
+            color: 'white',
+          }}
+          label={option.name.toUpperCase()}
+          {...getTagProps({ index })}
+          size="small"
+        />
+      );
+    }
+    return null;
+  })
+}
                 renderInput={(params) => (
-                    <TextField {...params} variant="outlined" placeholder="Tags" />
+                    <TextField {...params} variant="standard" placeholder="Tags" />
                 )}
                 PaperComponent={({ children }) => (
-                    <Paper style={{ width: 400, marginLeft: 12 }}>
+                    <Paper style={{width: 400, marginLeft: 12}}>
                         {children}
                     </Paper>
                 )}

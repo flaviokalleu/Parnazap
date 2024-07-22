@@ -1,5 +1,6 @@
 import * as Yup from "yup";
 import { Op } from "sequelize";
+import { logger } from "../../utils/logger";
 
 import AppError from "../../errors/AppError";
 import Whatsapp from "../../models/Whatsapp";
@@ -15,18 +16,14 @@ interface WhatsappData {
   complationMessage?: string;
   outOfHoursMessage?: string;
   ratingMessage?: string;
+  closeMessage?: string;
   queueIds?: number[];
   token?: string;
-  //sendIdQueue?: number;
-  //timeSendQueue?: number;
-  transferQueueId?: number; 
-  timeToTransfer?: number;    
-  promptId?: number;
-  maxUseBotQueues?: number;
-  timeUseBotQueues?: number;
-  expiresTicket?: number;
-  expiresInactiveMessage?: string;
-
+  webhook?: string;
+  ignoreNumbers?: string;
+  selectedMoveQueueId?: number;
+  selectedInterval?: number;
+  inatividade?: number;
 }
 
 interface Request {
@@ -60,17 +57,14 @@ const UpdateWhatsAppService = async ({
     complationMessage,
     outOfHoursMessage,
     ratingMessage,
+    closeMessage,
     queueIds = [],
     token,
-    //timeSendQueue,
-    //sendIdQueue = null,
-    transferQueueId,	
-	timeToTransfer,	
-    promptId,
-    maxUseBotQueues,
-    timeUseBotQueues,
-    expiresTicket,
-    expiresInactiveMessage
+    webhook,
+    ignoreNumbers,
+    selectedMoveQueueId,
+    selectedInterval,
+    inatividade
   } = whatsappData;
 
   try {
@@ -108,19 +102,21 @@ const UpdateWhatsAppService = async ({
     complationMessage,
     outOfHoursMessage,
     ratingMessage,
+    closeMessage,
     isDefault,
     companyId,
     token,
-    //timeSendQueue,
-    //sendIdQueue,
-    transferQueueId,	
-	timeToTransfer,	
-    promptId,
-    maxUseBotQueues,
-    timeUseBotQueues,
-    expiresTicket,
-    expiresInactiveMessage
+    webhook,
+    ignoreNumbers,
+    selectedMoveQueueId,
+    selectedInterval,
+    inatividade
   });
+
+  //logger.info("Update Whatsapp");
+  //logger.info(token);
+  //logger.info(webhook);
+
 
   await AssociateWhatsappQueue(whatsapp, queueIds);
 

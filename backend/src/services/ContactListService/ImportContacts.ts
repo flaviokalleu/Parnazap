@@ -14,22 +14,30 @@ export async function ImportContacts(
   const workbook = XLSX.readFile(file?.path as string);
   const worksheet = head(Object.values(workbook.Sheets)) as any;
   const rows: any[] = XLSX.utils.sheet_to_json(worksheet, { header: 0 });
-  const contacts = rows.map(row => {
+
+  // Limit the rows to 1000 items
+  const limitedRows = rows.slice(0, 1000);
+
+  const contacts = limitedRows.map(row => {
     let name = "";
     let number = "";
     let email = "";
 
-    if (has(row, "nome") || has(row, "Nome")) {
-      name = row["nome"] || row["Nome"];
+    if (has(row, "nome") || has(row, "Nome") || has(row, "Name") || has(row, "name")) {
+      name = row["nome"] || row["Nome"] || row["Name"] || row["name"];
     }
 
     if (
       has(row, "numero") ||
       has(row, "número") ||
       has(row, "Numero") ||
+      has(row, "Number") ||
+      has(row, "number") ||
+      has(row, "Phone") ||
+      has(row, "phone") ||
       has(row, "Número")
     ) {
-      number = row["numero"] || row["número"] || row["Numero"] || row["Número"];
+      number = row["numero"] || row["número"] || row["Numero"] || row["Número"] || row["Number"] || row["number"] || row["Phone"] || row["phone"];
       number = `${number}`.replace(/\D/g, "");
     }
 

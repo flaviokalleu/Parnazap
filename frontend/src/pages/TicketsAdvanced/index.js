@@ -11,7 +11,7 @@ import ChatIcon from '@material-ui/icons/Chat';
 import TicketsManagerTabs from "../../components/TicketsManagerTabs/";
 import Ticket from "../../components/Ticket/";
 import TicketAdvancedLayout from "../../components/TicketAdvancedLayout";
-import logo from "../../assets/logo.png"; //ParnaZap - Plataforma de MutiAtendimento LOGO//
+
 import { TicketsContext } from "../../context/Tickets/TicketsContext";
 
 import { i18n } from "../../translate/i18n";
@@ -28,7 +28,7 @@ const useStyles = makeStyles(theme => ({
         alignItems: "center",
         justifyContent: "center",
         height: "100%",
-		backgroundColor: theme.palette.boxticket, //DARK MODE ParnaZap - Plataforma de MutiAtendimento//
+		backgroundColor: "#eee"
     },
     placeholderItem: {
     }
@@ -61,13 +61,7 @@ const TicketAdvanced = (props) => {
 
 	const renderPlaceholder = () => {
 		return <Box className={classes.placeholderContainer}>
-             {/*<div className={classes.placeholderItem}>{i18n.t("chat.noTicketMessage")}</div>*/}
-			//ParnaZap - Plataforma de MutiAtendimento LOGO//
-			<div>
-			<center><img style={{ margin: "0 auto", width: "70%" }} src={logo} alt="logologin" /></center>
-			</div>
-			//ParnaZap - Plataforma de MutiAtendimento LOGO//
-			<br />
+            <div className={classes.placeholderItem}>{i18n.t("chat.noTicketMessage")}</div><br />
             <Button onClick={() => setOption(1)} variant="contained" color="primary">
                 Selecionar Ticket
             </Button>

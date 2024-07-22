@@ -15,18 +15,20 @@ import DialogTitle from "@material-ui/core/DialogTitle";
 import CircularProgress from "@material-ui/core/CircularProgress";
 import { Colorize } from "@material-ui/icons";
 import { ColorBox } from 'material-ui-color';
+import { FormControlLabel, Switch } from '@material-ui/core';
+import Select from "@material-ui/core/Select";
+import MenuItem from "@material-ui/core/MenuItem";
+import InputLabel from "@material-ui/core/InputLabel";
+import Checkbox from '@material-ui/core/Checkbox';
+
 
 import { i18n } from "../../translate/i18n";
 
 import api from "../../services/api";
 import toastError from "../../errors/toastError";
 import { AuthContext } from "../../context/Auth/AuthContext";
-import { IconButton, InputAdornment } from "@material-ui/core";
-import { FormControlLabel, Switch } from '@material-ui/core';
-import Select from "@material-ui/core/Select";
-import MenuItem from "@material-ui/core/MenuItem";
-import InputLabel from "@material-ui/core/InputLabel";
-import Checkbox from '@material-ui/core/Checkbox';
+import { IconButton, InputAdornment, FormControl } from "@material-ui/core";
+
 
 const useStyles = makeStyles(theme => ({
 	root: {
@@ -60,6 +62,11 @@ const useStyles = makeStyles(theme => ({
 		width: 20,
 		height: 20,
 	},
+    multFieldLine: {
+    	display: 'flex',
+    	flexDirection: 'row',
+    	alignItems: 'center',
+  	},
 }));
 
 const TagSchema = Yup.object().shape({
@@ -72,15 +79,17 @@ const TagModal = ({ open, onClose, tagId, reload }) => {
 	const classes = useStyles();
 	const { user } = useContext(AuthContext);
 	const [colorPickerModalOpen, setColorPickerModalOpen] = useState(false);
+    //console.log(user);
+
 
 	const initialState = {
 		name: "",
 		color: "",
-		kanban: 0
+        kanban: 0, 
+		order: 0
 	};
 
 	const [tag, setTag] = useState(initialState);
-	const [ kanban, setKanban] = useState(0);
 
 	useEffect(() => {
 		try {
@@ -88,7 +97,7 @@ const TagModal = ({ open, onClose, tagId, reload }) => {
 				if (!tagId) return;
 
 				const { data } = await api.get(`/tags/${tagId}`);
-				setKanban(data.kanban);
+                //console.log(data);
 				setTag(prevState => {
 					return { ...prevState, ...data };
 				});
@@ -104,12 +113,8 @@ const TagModal = ({ open, onClose, tagId, reload }) => {
 		onClose();
 	};
 
-	const handleKanbanChange = (e) => {
-		setKanban( e.target.checked ? 1 : 0);
-	};
-
 	const handleSaveTag = async values => {
-		const tagData = { ...values, userId: user.id, kanban };
+		const tagData = { ...values, userId: user.id };
 		try {
 			if (tagId) {
 				await api.put(`/tags/${tagId}`, tagData);
@@ -126,7 +131,16 @@ const TagModal = ({ open, onClose, tagId, reload }) => {
 		handleClose();
 	};
 
+
+const handleKanbanChange = (e) => {
+    const kanbanValue = e.target.checked ? 1 : 0;
+    setTag((prev) => ({
+      ...prev,
+      kanban: kanbanValue,
+    }));
+  };
 	return (
+    	
 		<div className={classes.root}>
 			<Dialog
 				open={open}
@@ -136,7 +150,7 @@ const TagModal = ({ open, onClose, tagId, reload }) => {
 				scroll="paper"
 			>
 				<DialogTitle id="form-dialog-title">
-					{(tagId ? `${i18n.t("tagModal.title.edit")}` : `${i18n.t("tagModal.title.add")}`)}
+					{ (tagId ? `${i18n.t("tagModal.title.edit")}` : `${i18n.t("tagModal.title.add")}`) }
 				</DialogTitle>
 				<Formik
 					initialValues={tag}
@@ -198,31 +212,50 @@ const TagModal = ({ open, onClose, tagId, reload }) => {
 										margin="dense"
 									/>
 								</div>
-								{(user.profile === "admin" || user.profile === "supervisor") && (
+                                {(user.profile === "admin" || user.profile === "supervisor") && (
                                 <>
+
+								{tag?.kanban === 1 && (
+									<div>
+										<Field
+										as={TextField}
+										label={i18n.t("Ordenarar Kanban")}
+										name="order"
+										error={touched.order && Boolean(errors.order)}
+										helperText={touched.order && errors.order}
+										variant="outlined"
+										margin="dense"
+										onChange={(e) => setTag(prev => ({ ...prev, order: e.target.value }))}
+										fullWidth
+										/>
+									</div>
+								)}
+
+
 								<div className={classes.multFieldLine}>
         							<FormControlLabel
           								control={
             								<Checkbox
-             									checked={kanban === 1}
+             									checked={tag.kanban === 1}
              									onChange={handleKanbanChange}
-              									value={kanban}
+              									name="kanban"
               									color="primary"
             								/>
           								}
-          								label="Kanban"
+          								label={i18n.t('tagModal.form.kanban')}
           								labelPlacement="start"
         							/>
-      							</div>
+								</div>
       							<br />
                                 </>
 								)}
-								{colorPickerModalOpen && (
+                                
+								{ colorPickerModalOpen && (
 									<div>
 										<ColorBox
 											disableAlpha={true}
 											hslGradient={false}
-											style={{ margin: '20px auto 0' }}
+											style={{margin: '20px auto 0'}}
 											value={tag.color}
 											onChange={val => {
 												setTag(prev => ({ ...prev, color: `#${val.hex}` }));
@@ -263,6 +296,7 @@ const TagModal = ({ open, onClose, tagId, reload }) => {
 				</Formik>
 			</Dialog>
 		</div>
+        
 	);
 };
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useReducer, useState, useContext } from "react";
+import React, { useContext, useEffect, useReducer, useState } from "react";
 
 import {
   Button,
@@ -25,6 +25,8 @@ import { DeleteOutline, Edit } from "@material-ui/icons";
 import QueueModal from "../../components/QueueModal";
 import { toast } from "react-toastify";
 import ConfirmationModal from "../../components/ConfirmationModal";
+import { socketConnection } from "../../services/socket";
+import { AuthContext } from "../../context/Auth/AuthContext";
 import { SocketContext } from "../../context/Socket/SocketContext";
 
 const useStyles = makeStyles((theme) => ({
@@ -89,12 +91,10 @@ const Queues = () => {
 
   const [queues, dispatch] = useReducer(reducer, []);
   const [loading, setLoading] = useState(false);
-
+  const socketManager = useContext(SocketContext);
   const [queueModalOpen, setQueueModalOpen] = useState(false);
   const [selectedQueue, setSelectedQueue] = useState(null);
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
-
-  const socketManager = useContext(SocketContext);
 
   useEffect(() => {
     (async () => {
@@ -113,9 +113,9 @@ const Queues = () => {
 
   useEffect(() => {
     const companyId = localStorage.getItem("companyId");
-    const socket = socketManager.getSocket(companyId);
+    const socket = socketManager.GetSocket(companyId);
 
-    socket.on(`company-${companyId}-queue`, (data) => {
+    const onQueue = (data) => {
       if (data.action === "update" || data.action === "create") {
         dispatch({ type: "UPDATE_QUEUES", payload: data.queue });
       }
@@ -123,7 +123,9 @@ const Queues = () => {
       if (data.action === "delete") {
         dispatch({ type: "DELETE_QUEUE", payload: data.queueId });
       }
-    });
+    }
+
+    socket.on(`company-${companyId}-queue`, onQueue);
 
     return () => {
       socket.disconnect();
@@ -196,17 +198,17 @@ const Queues = () => {
         <Table size="small">
           <TableHead>
             <TableRow>
-			   <TableCell align="center">
+              <TableCell align="center">
                 {i18n.t("queues.table.id")}
               </TableCell>
               <TableCell align="center">
                 {i18n.t("queues.table.name")}
               </TableCell>
               <TableCell align="center">
-                {i18n.t("queues.table.color")}
+                {i18n.t("queues.table.prioridade")}
               </TableCell>
               <TableCell align="center">
-                {i18n.t("queues.table.orderQueue")}
+                {i18n.t("queues.table.color")}
               </TableCell>
               <TableCell align="center">
                 {i18n.t("queues.table.greeting")}
@@ -217,11 +219,13 @@ const Queues = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            <>
-              {queues.map((queue) => (
+              {queues
+  .sort((a, b) => a.prioridade - b.prioridade)
+  .map((queue) => (
                 <TableRow key={queue.id}>
-				<TableCell align="center">{queue.id}</TableCell>
+                  <TableCell align="center">{queue.id}</TableCell>
                   <TableCell align="center">{queue.name}</TableCell>
+                  <TableCell align="center">{queue.prioridade}</TableCell>
                   <TableCell align="center">
                     <div className={classes.customTableCell}>
                       <span
@@ -232,17 +236,6 @@ const Queues = () => {
                           alignSelf: "center",
                         }}
                       />
-                    </div>
-                  </TableCell>
-                  <TableCell align="center">
-                    <div className={classes.customTableCell}>
-                      <Typography
-                        style={{ width: 300, align: "center" }}
-                        noWrap
-                        variant="body2"
-                      >
-                        {queue.orderQueue}
-                      </Typography>
                     </div>
                   </TableCell>
                   <TableCell align="center">
@@ -277,7 +270,6 @@ const Queues = () => {
                 </TableRow>
               ))}
               {loading && <TableRowSkeleton columns={4} />}
-            </>
           </TableBody>
         </Table>
       </Paper>

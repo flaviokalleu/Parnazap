@@ -13,6 +13,8 @@ import Button from "@material-ui/core/Button";
 import Table from "@material-ui/core/Table";
 import TableBody from "@material-ui/core/TableBody";
 import TableCell from "@material-ui/core/TableCell";
+import FlagIcon from '@material-ui/icons/Flag';
+import CheckCircleIcon from '@material-ui/icons/CheckCircle';
 import TableHead from "@material-ui/core/TableHead";
 import TableRow from "@material-ui/core/TableRow";
 import IconButton from "@material-ui/core/IconButton";
@@ -22,6 +24,7 @@ import InputAdornment from "@material-ui/core/InputAdornment";
 
 import DeleteOutlineIcon from "@material-ui/icons/DeleteOutline";
 import EditIcon from "@material-ui/icons/Edit";
+
 import MainContainer from "../../components/MainContainer";
 import MainHeader from "../../components/MainHeader";
 import MainHeaderButtonsWrapper from "../../components/MainHeaderButtonsWrapper";
@@ -34,9 +37,9 @@ import TagModal from "../../components/TagModal";
 import ConfirmationModal from "../../components/ConfirmationModal";
 import toastError from "../../errors/toastError";
 import { Chip } from "@material-ui/core";
-import { Tooltip } from "@material-ui/core";
-import { SocketContext } from "../../context/Socket/SocketContext";
+import { socketConnection } from "../../services/socket";
 import { AuthContext } from "../../context/Auth/AuthContext";
+import { SocketContext } from "../../context/Socket/SocketContext";
 
 const reducer = (state, action) => {
   if (action.type === "LOAD_TAGS") {
@@ -95,6 +98,8 @@ const Tags = () => {
   const classes = useStyles();
 
   const { user } = useContext(AuthContext);
+  const socketManager = useContext(SocketContext);
+  const { id, profile, name } = user;
 
   const [loading, setLoading] = useState(false);
   const [pageNumber, setPageNumber] = useState(1);
@@ -119,8 +124,6 @@ const Tags = () => {
     }
   }, [searchParam, pageNumber]);
 
-  const socketManager = useContext(SocketContext);
-
   useEffect(() => {
     dispatch({ type: "RESET" });
     setPageNumber(1);
@@ -135,9 +138,9 @@ const Tags = () => {
   }, [searchParam, pageNumber, fetchTags]);
 
   useEffect(() => {
-    const socket = socketManager.getSocket(user.companyId);
+    const socket = socketManager.GetSocket(user.companyId);
 
-    socket.on("user", (data) => {
+    const onUser = (data) => {
       if (data.action === "update" || data.action === "create") {
         dispatch({ type: "UPDATE_TAGS", payload: data.tags });
       }
@@ -145,12 +148,14 @@ const Tags = () => {
       if (data.action === "delete") {
         dispatch({ type: "DELETE_USER", payload: +data.tagId });
       }
-    });
+    }
+    
+    socket.on("user", onUser);
 
     return () => {
       socket.disconnect();
     };
-  }, [socketManager, user]);
+  }, [user, socketManager]);
 
   const handleOpenTagModal = () => {
     setSelectedTag(null);
@@ -199,7 +204,7 @@ const Tags = () => {
     }
   };
 
-return (
+  return (
     <MainContainer>
       <ConfirmationModal
         title={deletingTag && `${i18n.t("tags.confirmationModal.deleteTitle")}`}
@@ -238,7 +243,7 @@ return (
             onClick={handleOpenTagModal}
           >
             {i18n.t("tags.buttons.add")}
-          </Button>		  
+          </Button>
         </MainHeaderButtonsWrapper>
       </MainHeader>
       <Paper
@@ -249,7 +254,9 @@ return (
         <Table size="small">
           <TableHead>
             <TableRow>
+              <TableCell align="center">{i18n.t("tags.table.id")}</TableCell>
               <TableCell align="center">{i18n.t("tags.table.name")}</TableCell>
+              <TableCell align="center">{i18n.t("tags.table.kanban")}</TableCell>
               <TableCell align="center">
                 {i18n.t("tags.table.tickets")}
               </TableCell>
@@ -260,8 +267,11 @@ return (
           </TableHead>
           <TableBody>
             <>
-              {tags.map((tag) => (
+              {tags
+    			.sort((a, b) => b.id - a.id) // Sort the tags array in descending order based on the id
+    			.map((tag) => (
                 <TableRow key={tag.id}>
+                  <TableCell align="center">{tag.id}</TableCell>
                   <TableCell align="center">
                     <Chip
                       variant="outlined"
@@ -274,14 +284,29 @@ return (
                       size="small"
                     />
                   </TableCell>
-                  <TableCell align="center">{tag.ticketsCount}</TableCell>
+				  <TableCell align="center">
+  					{tag.kanban === 1 ? (
+    					<CheckCircleIcon style={{ color: 'green' }} />
+  						) : (
+    					''
+  						)}
+				  </TableCell>
+				  <TableCell align="center">{tag.ticketsCount}</TableCell>
                   <TableCell align="center">
+                  <>
+                  {((user.profile === "admin" || user.profile === "supervisor")) && (
                     <IconButton size="small" onClick={() => handleEditTag(tag)}>
-                      <EditIcon />
+                      <EditIcon color="primary"/>
                     </IconButton>
+                    
+                  )}
+          
+                    
+                  {((user.profile === "admin" || user.profile === "supervisor")) && (
 
                     <IconButton
                       size="small"
+                      color="primary"
                       onClick={(e) => {
                         setConfirmModalOpen(true);
                         setDeletingTag(tag);
@@ -289,6 +314,11 @@ return (
                     >
                       <DeleteOutlineIcon />
                     </IconButton>
+                    
+                    )}
+                    
+                 </>
+                 
                   </TableCell>
                 </TableRow>
               ))}

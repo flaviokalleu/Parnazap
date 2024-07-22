@@ -1,12 +1,15 @@
 import * as Yup from "yup";
 import AppError from "../../errors/AppError";
 import Company from "../../models/Company";
-import Setting from "../../models/Setting";
 import User from "../../models/User";
+import Setting from "../../models/Setting";
 
 interface CompanyData {
   name: string;
   phone?: string;
+  namecomplete?: string;
+  pais?: string;
+  indicator?: string;
   email?: string;
   password?: string;
   status?: boolean;
@@ -22,6 +25,9 @@ const CreateCompanyService = async (
   const {
     name,
     phone,
+    namecomplete,
+    pais,
+    indicator,
     email,
     status,
     planId,
@@ -31,6 +37,7 @@ const CreateCompanyService = async (
     recurrence
   } = companyData;
 
+/*
   const companySchema = Yup.object().shape({
     name: Yup.string()
       .min(2, "ERR_COMPANY_INVALID_NAME")
@@ -50,9 +57,48 @@ const CreateCompanyService = async (
         }
       )
   });
+  
+*/
+
+const companySchema = Yup.object().shape({
+  name: Yup.string()
+    .min(2, "ERR_COMPANY_INVALID_NAME")
+    .required("ERR_COMPANY_INVALID_NAME")
+    .test(
+      "Check-unique-name",
+      "Empresa Já Cadastrada!",
+      async value => {
+        if (value) {
+          const companyWithSameName = await Company.findOne({
+            where: { name: value }
+          });
+
+          return !companyWithSameName;
+        }
+        return false;
+      }
+    ),
+  email: Yup.string()
+    .email("ERR_COMPANY_INVALID_EMAIL")
+    .required("ERR_COMPANY_INVALID_EMAIL")
+    .test(
+      "Check-unique-email",
+      "E-Mail Já Cadastrado!",
+      async value => {
+        if (value) {
+          const companyWithSameEmail = await Company.findOne({
+            where: { email: value }
+          });
+
+          return !companyWithSameEmail;
+        }
+        return false;
+      }
+    )
+});
 
   try {
-    await companySchema.validate({ name });
+    await companySchema.validate({ name, email });
   } catch (err: any) {
     throw new AppError(err.message);
   }
@@ -60,6 +106,9 @@ const CreateCompanyService = async (
   const company = await Company.create({
     name,
     phone,
+    namecomplete,
+    pais,
+    indicator,
     email,
     status,
     planId,
@@ -68,9 +117,9 @@ const CreateCompanyService = async (
   });
 
   const user = await User.create({
-    name: company.name,
+    name: company.namecomplete,
     email: company.email,
-    password: password || "mudar123",
+    password: companyData.password,
     profile: "admin",
     companyId: company.id
   });
@@ -191,33 +240,6 @@ const CreateCompanyService = async (
     },
   });
 
-
- // Enviar mensagem ao aceitar ticket
-    await Setting.findOrCreate({
-	where:{
-      companyId: company.id,
-      key: "sendGreetingAccepted",
-    },
-    defaults: {
-      companyId: company.id,
-      key: "sendGreetingAccepted",
-      value: "disabled"
-    },
-  });
-  
- // Enviar mensagem de transferencia
-    await Setting.findOrCreate({
-	where:{
-      companyId: company.id,
-      key: "sendMsgTransfTicket",
-    },
-    defaults: {
-      companyId: company.id,
-      key: "sendMsgTransfTicket",
-      value: "disabled"
-    },
- });
-
   //userRating
   await Setting.findOrCreate({
     where: {
@@ -231,7 +253,7 @@ const CreateCompanyService = async (
     },
   });
 
-  //userRating
+  //chatBotType
   await Setting.findOrCreate({
     where: {
       companyId: company.id,
@@ -242,42 +264,148 @@ const CreateCompanyService = async (
       key: "chatBotType",
       value: "text"
     },
-
   });
 
+  //moveQueue
   await Setting.findOrCreate({
     where: {
       companyId: company.id,
-      key: "tokensgp"
+      key: "moveQueue"
     },
     defaults: {
       companyId: company.id,
-      key: "tokensgp",
-      value: ""
+      key: "moveQueue",
+      value: "disabled"
     },
   });
 
+  //idfila
   await Setting.findOrCreate({
     where: {
       companyId: company.id,
-      key: "ipsgp"
+      key: "idfila"
     },
     defaults: {
       companyId: company.id,
-      key: "ipsgp",
-      value: ""
+      key: "idfila",
+      value: "0"
     },
   });
 
+  //tempofila
   await Setting.findOrCreate({
     where: {
       companyId: company.id,
-      key: "appsgp"
+      key: "tempofila"
     },
     defaults: {
       companyId: company.id,
-      key: "appsgp",
-      value: ""
+      key: "tempofila",
+      value: "10"
+    },
+  });
+
+  //sendGreetingAccepted
+  await Setting.findOrCreate({
+    where: {
+      companyId: company.id,
+      key: "sendGreetingAccepted"
+    },
+    defaults: {
+      companyId: company.id,
+      key: "sendGreetingAccepted",
+      value: "enabled"
+    },
+  });
+
+  //outsidemessage
+  await Setting.findOrCreate({
+    where: {
+      companyId: company.id,
+      key: "outsidemessage"
+    },
+    defaults: {
+      companyId: company.id,
+      key: "outsidemessage",
+      value: "enabled"
+    },
+  });
+
+  //outsidequeue
+  await Setting.findOrCreate({
+    where: {
+      companyId: company.id,
+      key: "outsidequeue"
+    },
+    defaults: {
+      companyId: company.id,
+      key: "outsidequeue",
+      value: "disabled"
+    },
+  });
+
+  //sendTransferAlert
+  await Setting.findOrCreate({
+    where: {
+      companyId: company.id,
+      key: "sendTransferAlert"
+    },
+    defaults: {
+      companyId: company.id,
+      key: "sendTransferAlert",
+      value: "enabled"
+    },
+  });
+
+  //mainColor
+  await Setting.findOrCreate({
+    where: {
+      companyId: company.id,
+      key: "mainColor"
+    },
+    defaults: {
+      companyId: company.id,
+      key: "mainColor",
+      value: "#4a90e2"
+    },
+  });
+
+  //scrollbarColor
+  await Setting.findOrCreate({
+    where: {
+      companyId: company.id,
+      key: "scrollbarColor"
+    },
+    defaults: {
+      companyId: company.id,
+      key: "scrollbarColor",
+      value: "#4a90e2"
+    },
+  });
+
+  //toolbarBackground
+  await Setting.findOrCreate({
+    where: {
+      companyId: company.id,
+      key: "toolbarBackground"
+    },
+    defaults: {
+      companyId: company.id,
+      key: "toolbarBackground",
+      value: "#4a90e2"
+    },
+  });
+
+  //backgroundPages
+  await Setting.findOrCreate({
+    where: {
+      companyId: company.id,
+      key: "backgroundPages"
+    },
+    defaults: {
+      companyId: company.id,
+      key: "backgroundPages",
+      value: "linear-gradient(to right, #3c6afb , #3c6afb , #C5AEF2)"
     },
   });
 
@@ -290,12 +418,12 @@ const CreateCompanyService = async (
       defaults: {
         companyId: company.id,
         key: "campaignsEnabled",
-        value: `${campaignsEnabled}`
+        value: "false"
       },
 
     });
     if (!created) {
-      await setting.update({ value: `${campaignsEnabled}` });
+      await setting.update({ value: "false" });
     }
   }
 

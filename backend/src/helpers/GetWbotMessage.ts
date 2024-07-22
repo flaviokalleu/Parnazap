@@ -1,5 +1,5 @@
-import { proto } from "@whiskeysockets/baileys";
-import WALegacySocket from "@whiskeysockets/baileys"
+import { proto } from "@laxeder/baileys";
+import WALegacySocket from "@laxeder/baileys"
 import Ticket from "../models/Ticket";
 import GetTicketWbot from "./GetTicketWbot";
 import AppError from "../errors/AppError";
@@ -22,8 +22,9 @@ export const GetWbotMessage = async (
       });
 
       return msgFound;
+    
 
-
+    return null;
   };
 
   try {
@@ -35,6 +36,7 @@ export const GetWbotMessage = async (
 
     return msgFound;
   } catch (err) {
+    console.log(err);
     throw new AppError("ERR_FETCH_WAPP_MSG");
   }
 };

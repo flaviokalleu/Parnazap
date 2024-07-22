@@ -21,14 +21,15 @@ const ListService = async ({
   pageNumber = "1"
 }: Request): Promise<Response> => {
   let whereCondition = {};
-  const limit = 5000;
+  const limit = 200000;
   const offset = limit * (+pageNumber - 1);
 
   if (searchParam) {
     whereCondition = {
       [Op.or]: [
         { name: { [Op.like]: `%${searchParam}%` } },
-        { color: { [Op.like]: `%${searchParam}%` } }
+        { color: { [Op.like]: `%${searchParam}%` } },
+        { kanban: { [Op.like]: `%${searchParam}%` } }
       ]
     };
   }
@@ -49,6 +50,7 @@ const ListService = async ({
       'id',
       'name',
       'color',
+      'kanban',
       [fn('count', col('ticketTags.tagId')), 'ticketsCount']
     ],
     group: ['Tag.id']

@@ -8,14 +8,6 @@ export const greeting = (): string => {
   return greetings[(h / 6) >> 0];
 };
 
-export const firstName = (contact?: Contact): string => {
-  if (contact && contact?.name) {
-    const nameArr = contact?.name.split(' ');
-    return nameArr[0];
-  }
-  return '';
-};
-
 export default (body: string, contact: Contact): string => {
   let ms = "";
 
@@ -46,12 +38,11 @@ export default (body: string, contact: Contact): string => {
   const hora = `${hh}:${min}:${ss}`;
 
   const view = {
-    firstName: firstName(contact),
     name: contact ? contact.name : "",
     gretting: greeting(),
     ms,
     protocol,
-    hora
+    hora,
   };
   return Mustache.render(body, view);
 };
