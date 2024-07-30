@@ -1,10 +1,11 @@
+// src/routes/checkQueueRoutes.ts
+
 import { Router } from "express";
 import isAuth from "../middleware/isAuth";
-
-import * as CheckQueueController from "../controllers/CheckQueueController";
+import CheckQueuesController from "../controllers/CheckQueueController";
 
 const checkQueueRoutes = Router();
 
-checkQueueRoutes.get("/checkqueue/:queueId", isAuth, CheckQueueController.show);
+checkQueueRoutes.get("/checkqueue/:queueId", isAuth, CheckQueuesController.getWhatsappIds);
 
 export default checkQueueRoutes;

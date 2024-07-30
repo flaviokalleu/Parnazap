@@ -21,7 +21,7 @@
     "@adiwajshing/keyed-db": "^0.2.4",
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@hapi/boom": "^9.1.4",
-    "@laxeder/baileys": "github:allgood/Baileys#fixProfilePic",
+    "@laxeder/baileys": "github:laxeder/baileys#fix-list-type",
     "@sendgrid/mail": "^8.1.3",
     "@sentry/node": "^6.18.1",
     "@socket.io/admin-ui": "^0.5.1",

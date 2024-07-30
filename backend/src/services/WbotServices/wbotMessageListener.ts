@@ -64,7 +64,7 @@ import ffmpeg from "fluent-ffmpeg";
 import { addMsgAckJob } from "./BullAckService";
 ffmpeg.setFfmpegPath('/usr/bin/ffmpeg');
 
-const puppeteer = require('puppeteer');
+//const puppeteer = require('puppeteer');
 const fs = require('fs')
 const path = require('path');
 var axios = require('axios');

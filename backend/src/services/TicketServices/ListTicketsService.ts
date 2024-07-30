@@ -51,15 +51,13 @@ const ListTicketsService = async ({
   dateFrom,
   dateUntil
 }: Request): Promise<Response> => {
-  // Verifica o perfil do usuário
-  const user = await ShowUserService(userId);
-  const isAdmin = user.profile === 'admin';
-
   let whereCondition: Filterable["where"] = {
-    companyId
+    [Op.or]: [{ userId }, { status: "pending" }],
+    queueId: { [Op.or]: [queueIds, null] }
   };
+  let includeCondition: Includeable[];
 
-  let includeCondition: Includeable[] = [
+  includeCondition = [
     {
       model: Contact,
       as: "contact",
@@ -87,37 +85,15 @@ const ListTicketsService = async ({
     }
   ];
 
-  if (isAdmin) {
-    // Admin pode ver todos os tickets, incluindo os pendentes com mensagens lidas ou não
-    if (showAll === "true") {
-      whereCondition = {
-        queueId: { [Op.or]: [queueIds, null] }
-      };
-    }
-    if (status) {
-      whereCondition = {
-        ...whereCondition,
-        status
-      };
-    }
-    if (withUnreadMessages === "true") {
-      whereCondition = {
-        ...whereCondition,
-        unreadMessages: { [Op.gt]: 0 } // Inclui apenas tickets com mensagens não lidas
-      };
-    }
-  } else {
-    // Usuário normal vê apenas seus próprios tickets
-    whereCondition = {
-      userId
-    };
+  if (showAll === "true") {
+    whereCondition = { queueId: { [Op.or]: [queueIds, null] } };
+  }
 
-    if (withUnreadMessages === "true") {
-      whereCondition = {
-        ...whereCondition,
-        unreadMessages: { [Op.gt]: 0 }
-      };
-    }
+  if (status) {
+    whereCondition = {
+      ...whereCondition,
+      status
+    };
   }
 
   if (searchParam) {
@@ -193,6 +169,17 @@ const ListTicketsService = async ({
     };
   }
 
+  if (withUnreadMessages === "true") {
+    const user = await ShowUserService(userId);
+    const userQueueIds = user.queues.map(queue => queue.id);
+
+    whereCondition = {
+      [Op.or]: [{ userId }, { status: "pending" }],
+      queueId: { [Op.or]: [userQueueIds, null] },
+      unreadMessages: { [Op.gt]: 0 }
+    };
+  }
+
   if (Array.isArray(tags) && tags.length > 0) {
     const ticketsTagFilter: any[] | null = [];
     for (let tag of tags) {
@@ -237,6 +224,11 @@ const ListTicketsService = async ({
 
   const limit = 40;
   const offset = limit * (+pageNumber - 1);
+
+  whereCondition = {
+    ...whereCondition,
+    companyId
+  };
 
   const { count, rows: tickets } = await Ticket.findAndCountAll({
     where: whereCondition,
