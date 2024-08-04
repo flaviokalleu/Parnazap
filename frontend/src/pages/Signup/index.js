@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from "react";
 import qs from 'query-string'
 
-import countries from 'react-select-country-list';
-
 import * as Yup from "yup";
 import { useHistory } from "react-router-dom";
 import { Link as RouterLink } from "react-router-dom";
@@ -16,6 +14,7 @@ import TextField from "@material-ui/core/TextField";
 import Link from "@material-ui/core/Link";
 import Grid from "@material-ui/core/Grid";
 import Box from "@material-ui/core/Box";
+import InputMask from 'react-input-mask';
 import {
 	FormControl,
 	InputLabel,
@@ -26,31 +25,24 @@ import LockOutlinedIcon from "@material-ui/icons/LockOutlined";
 import Typography from "@material-ui/core/Typography";
 import { makeStyles } from "@material-ui/core/styles";
 import Container from "@material-ui/core/Container";
-
+import logo from "../../assets/logo.png";
 import { i18n } from "../../translate/i18n";
 
 import { openApi } from "../../services/api";
 import toastError from "../../errors/toastError";
 import moment from "moment";
-import api from "../../services/api";
-
-import PhoneInput from 'react-phone-number-input';
-import 'react-phone-number-input/style.css';
-
 const Copyright = () => {
 	return (
-		<Typography variant="body2" color="powered" align="center">
-			{"Copyright "}
-
-			{new Date().getFullYear()}{" - "}
-
- 			{`${process.env.REACT_APP_NAME_SYSTEM}`}
- 		</Typography>
- 	);
- };
-
-const countryOptions = countries().getData();
-
+		<Typography variant="body2" color="textSecondary" align="center">
+			{"Copyright © "}
+			<Link color="inherit" href="#">
+				PLW
+			</Link>{" "}
+		   {new Date().getFullYear()}
+			{"."}
+		</Typography>
+	);
+};
 
 const useStyles = makeStyles(theme => ({
 	paper: {
@@ -70,9 +62,6 @@ const useStyles = makeStyles(theme => ({
 	submit: {
 		margin: theme.spacing(3, 0, 2),
 	},
-	powered: {
-		color: `${process.env.REACT_APP_POWERED_COLOR_SIGNUP}`,
-	}
 }));
 
 const UserSchema = Yup.object().shape({
@@ -80,119 +69,24 @@ const UserSchema = Yup.object().shape({
 		.min(2, "Too Short!")
 		.max(50, "Too Long!")
 		.required("Required"),
-	namecomplete: Yup.string()
-		.min(2, "Too Short!")
-		.max(50, "Too Long!")
-		.required("Required"),
-    phone: Yup.string()
-		.min(8, "Too Short!")
-		.max(50, "Too Long!")
-		.required("Required"),
-    pais: Yup.string()
-		.min(2, "Too Short!")
-		.max(50, "Too Long!")
-		.required("Required"),
 	password: Yup.string().min(5, "Too Short!").max(50, "Too Long!"),
-	email: Yup.string().email("Invalid email").required("Required").toString(),
+	email: Yup.string().email("Invalid email").required("Required"),
 });
 
 const SignUp = () => {
 	const classes = useStyles();
 	const history = useHistory();
 	let companyId = null
-    const [viewterms, setviewterms] = useState('disabled');
-    const [viewprivacy, setviewprivacy] = useState('disabled');
-    const [allowregister, setallowregister] = useState('enabled');
-    const [trial, settrial] = useState('3');
-
-	useEffect(() => {
-        fetchviewterms();
-        fetchviewprivacy();
-        fetchallowregister();
-        fetchtrial();
-    }, []);
-
-
-    const fetchtrial = async () => {
-  
- 
-    try {
-        const responsevvv = await api.get("/settings/trial");
-        const allowtrialX = responsevvv.data.value;
-        //console.log(allowregisterX);
-        settrial(allowtrialX);
-        } catch (error) {
-            console.error('Error retrieving trial', error);
-        }
-    };
-
-
-    const fetchallowregister = async () => {
-  
- 
-    try {
-        const responsevv = await api.get("/settings/allowregister");
-        const allowregisterX = responsevv.data.value;
-        //console.log(allowregisterX);
-        setallowregister(allowregisterX);
-        } catch (error) {
-            console.error('Error retrieving allowregister', error);
-        }
-    };
-
-    if(allowregister === "disabled"){
-    	history.push("/login");    
-    }
-
-    const fetchviewterms = async () => {
-  
- 
-    try {
-        const responsev = await api.get("/settings/viewterms");
-        const viewtermsX = responsev.data.value;
-        //console.log(viewtermsX);
-        setviewterms(viewtermsX);
-        } catch (error) {
-            console.error('Error retrieving viewterms', error);
-        }
-    };
-
-
-    const fetchviewprivacy = async () => {
-  
- 
-    try {
-        const responsew = await api.get("/settings/viewprivacy");
-        const viewprivacyX = responsew.data.value;
-        //console.log(viewprivacyX );
-        setviewprivacy(viewprivacyX );
-        } catch (error) {
-            console.error('Error retrieving viewprivacy', error);
-        }
-    };
-    
-    
 
 	const params = qs.parse(window.location.search)
 	if (params.companyId !== undefined) {
 		companyId = params.companyId
 	}
 
-    //let refValue = null
-    //refValue = params.ref;
-
-    // Initialize the refValue variable with null or an initial value
-	const [refValue, setRefValue] = useState(params.ref);
-
-	// Update the refValue variable with the desired value
-	const handleRefChange = (event) => {
-  		setRefValue(params.ref);
-	};
-
-	const initialState = { name: "", email: "", password: "", phone: "", pais: "BR", indicator: "", namecomplete: "", planId: "disabled", };
+	const initialState = { name: "", email: "", phone: "", password: "", planId: "", };
 
 	const [user] = useState(initialState);
-	const dueDate = moment().add(trial, "day").format();
+	const dueDate = moment().add(3, "day").format();
 	const handleSignUp = async values => {
 		Object.assign(values, { recurrence: "MENSAL" });
 		Object.assign(values, { dueDate: dueDate });
@@ -209,7 +103,7 @@ const SignUp = () => {
 	};
 
 	const [plans, setPlans] = useState([]);
-	const { register: listPlans } = usePlans();
+	const { list: listPlans } = usePlans();
 
 	useEffect(() => {
 		async function fetchData() {
@@ -219,28 +113,23 @@ const SignUp = () => {
 		fetchData();
 	}, []);
 
-	const logo = `${process.env.REACT_APP_BACKEND_URL}/public/logotipos/signup.png`;
-    const randomValue = Math.random(); // Generate a random number
-  
-    const logoWithRandom = `${logo}?r=${randomValue}`;
-
 
 	return (
 		<Container component="main" maxWidth="xs">
 			<CssBaseline />
 			<div className={classes.paper}>
 				<div>
-					<center><img style={{ margin: "0 auto", width: "70%" }} src={logo} alt={`${process.env.REACT_APP_NAME_SYSTEM}`} /></center>
+					<img style={{ margin: "0 auto", height: "80px", width: "100%" }} src={logo} alt="Whats" />
 				</div>
+				{/*<Typography component="h1" variant="h5">
+					{i18n.t("signup.title")}
+				</Typography>*/}
 				{/* <form className={classes.form} noValidate onSubmit={handleSignUp}> */}
 				<Formik
 					initialValues={user}
 					enableReinitialize={true}
 					validationSchema={UserSchema}
 					onSubmit={(values, actions) => {
-                    
-                    	values.indicator = refValue;
-                    
 						setTimeout(() => {
 							handleSignUp(values);
 							actions.setSubmitting(false);
@@ -249,25 +138,7 @@ const SignUp = () => {
 				>
 					{({ touched, errors, isSubmitting }) => (
 						<Form className={classes.form}>
-                    
-                    <Grid container spacing={2}>
-                    
-                            <Grid item xs={12}>
-									<Field
-										as={TextField}
-										autoComplete="namecomplete"
-										name="namecomplete"
-										error={touched.namecomplete && Boolean(errors.namecomplete)}
-										helperText={touched.namecomplete && errors.namecomplete}
-										variant="outlined"
-										fullWidth
-										id="namecomplete"
-										label="Nome Completo"
-										required
-									/>
-							</Grid>
-
-							
+							<Grid container spacing={2}>
 								<Grid item xs={12}>
 									<Field
 										as={TextField}
@@ -278,12 +149,9 @@ const SignUp = () => {
 										variant="outlined"
 										fullWidth
 										id="name"
-										label="Empresa"
-										required
+										label="Nome da Empresa"
 									/>
 								</Grid>
-
-								
 
 								<Grid item xs={12}>
 									<Field
@@ -299,6 +167,31 @@ const SignUp = () => {
 										required
 									/>
 								</Grid>
+								
+							<Grid item xs={12}>
+								<Field
+									as={InputMask}
+									mask="(99) 99999-9999"
+									variant="outlined"
+									fullWidth
+									id="phone"
+									name="phone"
+									error={touched.phone && Boolean(errors.phone)}
+									helperText={touched.phone && errors.phone}
+									autoComplete="phone"
+									required
+								>
+									{({ field }) => (
+										<TextField
+											{...field}
+											variant="outlined"
+											fullWidth
+											label="DDD988888888"
+											inputProps={{ maxLength: 11 }} // Definindo o limite de caracteres
+										/>
+									)}
+								</Field>
+							</Grid>
 								<Grid item xs={12}>
 									<Field
 										as={TextField}
@@ -314,51 +207,6 @@ const SignUp = () => {
 										required
 									/>
 								</Grid>
-
-
-
-								<Grid item xs={12}>
-									<Field
-										as={TextField}
-										autoComplete="phone"
-										name="phone"
-										error={touched.phone && Boolean(errors.phone)}
-										helperText={touched.phone && errors.phone}
-										variant="outlined"
-										fullWidth
-                                        type="number"
-										id="phone"
-										label="Celular"
-										required
-									/>
-								</Grid>
-
-
-
-								
-								<Grid item xs={12}>
-  									<InputLabel htmlFor="pais">País</InputLabel>
-  									<Field
-    									as={Select}
-    									variant="outlined"
-    									fullWidth
-    									id="pais"
-    									label="País"
-    									name="pais"
-    									required
-  									>
-    									<MenuItem value="disabled" disabled>
-      										<em>Qual seu País?</em>
-    									</MenuItem>
-    								{countryOptions.map((country, key) => (
-      										<MenuItem key={key} value={country.value}>
-        									{country.label}
-      										</MenuItem>
-    									))}
-  									</Field>
-								</Grid>
-
-
 								<Grid item xs={12}>
 									<InputLabel htmlFor="plan-selection">Plano</InputLabel>
 									<Field
@@ -370,65 +218,13 @@ const SignUp = () => {
 										name="planId"
 										required
 									>
-                                        <MenuItem value="disabled" disabled>
-                                        	<em>Selecione seu plano de assinatura</em>
-										</MenuItem>
 										{plans.map((plan, key) => (
 											<MenuItem key={key} value={plan.id}>
-										        {plan.name} - {plan.connections} WhatsApps - {plan.users} Usuários - R$ {plan.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+												{plan.name} - Atendentes: {plan.users} - WhatsApp: {plan.connections} - Filas: {plan.queues} - R$ {plan.value}
 											</MenuItem>
 										))}
 									</Field>
 								</Grid>
-
-								<Grid item xs={12}>
-									<Field
-										as={TextField}
-										autoComplete="off"
-										name="indicator"
-										error={touched.indicator && Boolean(errors.indicator)}
-										helperText={touched.indicator && errors.indicator}
-										variant="outlined"
-										fullWidth
-										id="indicator"
-										label="Código de Indicação"
-										value={refValue}
-										onChange={handleRefChange}
-									/>
-								</Grid>
-                                
-                            {viewterms === "enabled" && (
-                            <>
-								<Grid item xs={12}>
-<a
-  href={`${process.env.REACT_APP_BACKEND_URL}/public/legal/termos.pdf`}
-  target="_blank"
-  rel="noopener noreferrer"
-  style={{ textDecoration: 'none', color: 'black' }}
->
-  {i18n.t("signup.buttons.terms")}
-</a>
-								</Grid>
-                            </>
-                            )}
-                            {viewprivacy === "enabled" && (
-                            <>
-								<Grid item xs={12}>
-<a
-  href={`${process.env.REACT_APP_BACKEND_URL}/public/legal/privacidade.pdf`}
-  target="_blank"
-  rel="noopener noreferrer"
-  style={{ textDecoration: 'none', color: 'black' }}
->
-  {i18n.t("signup.buttons.privacy")}
-</a>
-								</Grid>
-                            </>
-                            )}
-
-							
-
-
 							</Grid>
 							<Button
 								type="submit"
@@ -451,12 +247,11 @@ const SignUp = () => {
 									</Link>
 								</Grid>
 							</Grid>
-
 						</Form>
 					)}
 				</Formik>
 			</div>
-			<Box mt={5}><Copyright /></Box>
+			<Box mt={5}>{/* <Copyright /> */}</Box>
 		</Container>
 	);
 };

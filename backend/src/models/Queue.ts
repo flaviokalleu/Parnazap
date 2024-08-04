@@ -22,6 +22,8 @@ import Company from "./Company";
 import Whatsapp from "./Whatsapp";
 import WhatsappQueue from "./WhatsappQueue";
 import QueueOption from "./QueueOption";
+import Prompt from "./Prompt";
+import QueueIntegrations from "./QueueIntegrations";
 
 @Table
 class Queue extends Model<Queue> {
@@ -29,6 +31,13 @@ class Queue extends Model<Queue> {
   @AutoIncrement
   @Column
   id: number;
+  @AllowNull(false)
+  @Column
+  ativarRoteador: boolean;
+
+  @AllowNull(false)
+  @Column
+  tempoRoteador: number;
 
   @AllowNull(false)
   @Unique
@@ -40,22 +49,6 @@ class Queue extends Model<Queue> {
   @Column
   color: string;
 
-  @AllowNull(false)
-  @Column
-  isChatbot: boolean;
-
-  @AllowNull(false)
-  @Column
-  prioridade: number;
-
-  @AllowNull(false)
-  @Column
-  ativarRoteador: boolean;
-
-  @AllowNull(false)
-  @Column
-  tempoRoteador: number;
-  
   @Default("")
   @Column
   greetingMessage: string;
@@ -95,28 +88,29 @@ class Queue extends Model<Queue> {
   })
   options: QueueOption[];
 
-  @Default("")
   @Column
-  typeChatbot: string;
-  
-  @Column
-  workspaceTypebot: string;
-  
-  @Column
-  typebotId: string;
-  
-  @Column
-  publicId: string;
+  orderQueue: number;
 
-  @Default(true)
+  
+  @ForeignKey(() => QueueIntegrations)
   @Column
-  resetChatbotMsg: boolean;
+  integrationId: number;
+
+  @BelongsTo(() => QueueIntegrations)
+  queueIntegrations: QueueIntegrations;
+
+  @ForeignKey(() => Prompt)
+  @Column
+  promptId: number;
+
+  @BelongsTo(() => Prompt)
+  prompt: Prompt;
   
   @Column
-  n8n: string;
+  mediaPath: string;
 
   @Column
-  n8nId: string;
+  mediaName: string;
 }
 
 export default Queue;

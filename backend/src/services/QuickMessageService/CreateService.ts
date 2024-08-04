@@ -7,12 +7,10 @@ interface Data {
   message: string;
   companyId: number | string;
   userId: number | string;
-  geral: boolean;
-  caption?: string;
 }
 
 const CreateService = async (data: Data): Promise<QuickMessage> => {
-  const { shortcode, message, geral, caption } = data;
+  const { shortcode, message } = data;
 
   const ticketnoteSchema = Yup.object().shape({
     shortcode: Yup.string()

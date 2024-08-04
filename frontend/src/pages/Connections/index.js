@@ -40,7 +40,7 @@ import QrcodeModal from "../../components/QrcodeModal";
 import { i18n } from "../../translate/i18n";
 import { WhatsAppsContext } from "../../context/WhatsApp/WhatsAppsContext";
 import toastError from "../../errors/toastError";
-import formatSerializedId from '../../utils/formatSerializedId';
+
 import { AuthContext } from "../../context/Auth/AuthContext";
 import { Can } from "../../components/Can";
 
@@ -293,16 +293,6 @@ const Connections = () => {
 		);
 	};
 
-  const restartWhatsapps = async () => {
-    // const companyId = localStorage.getItem("companyId");
-    try {
-      await api.post(`/whatsapp-restart/`);
-      toast.warn(i18n.t("Aguarde... reiniciando..."));
-    } catch (err) {
-      toastError(err);
-    }
-  }
-
 	return (
 		<MainContainer>
 			<ConfirmationModal
@@ -330,7 +320,6 @@ const Connections = () => {
 						role={user.profile}
 						perform="connections-page:addConnection"
 						yes={() => (
-                        <>
 							<Button
 								variant="contained"
 								color="primary"
@@ -338,14 +327,6 @@ const Connections = () => {
 							>
 								{i18n.t("connections.buttons.add")}
 							</Button>
- 							<Button
-            					variant="contained"
-            					color="primary"
-            					onClick={restartWhatsapps}
-          					>
-            					{i18n.t("connections.buttons.restart")}
-          					</Button>
-						</>
 						)}
 					/>
 				</MainHeaderButtonsWrapper>
@@ -354,15 +335,9 @@ const Connections = () => {
 				<Table size="small">
 					<TableHead>
 						<TableRow>
-                			<TableCell align="center">
-								{i18n.t("connections.table.id")}
-							</TableCell>
 							<TableCell align="center">
 								{i18n.t("connections.table.name")}
 							</TableCell>
-							<TableCell align="center">
-                            	{i18n.t("connections.table.number")}
-                            </TableCell>
 							<TableCell align="center">
 								{i18n.t("connections.table.status")}
 							</TableCell>
@@ -400,9 +375,7 @@ const Connections = () => {
 								{whatsApps?.length > 0 &&
 									whatsApps.map(whatsApp => (
 										<TableRow key={whatsApp.id}>
-                        					<TableCell align="center">{whatsApp.id}</TableCell>
 											<TableCell align="center">{whatsApp.name}</TableCell>
-											<TableCell align="center">{whatsApp.number ? (<>{formatSerializedId(whatsApp.number)}</>) : "-"}</TableCell>
 											<TableCell align="center">
 												{renderStatusToolTips(whatsApp)}
 											</TableCell>
@@ -434,7 +407,7 @@ const Connections = () => {
 															size="small"
 															onClick={() => handleEditWhatsApp(whatsApp)}
 														>
-															<Edit color="secondary" />
+															<Edit />
 														</IconButton>
 
 														<IconButton
@@ -443,7 +416,7 @@ const Connections = () => {
 																handleOpenConfirmationModal("delete", whatsApp.id);
 															}}
 														>
-															<DeleteOutline color="secondary" />
+															<DeleteOutline />
 														</IconButton>
 													</TableCell>
 												)}

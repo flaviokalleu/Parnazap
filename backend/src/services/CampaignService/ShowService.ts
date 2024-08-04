@@ -10,7 +10,7 @@ const ShowService = async (id: string | number): Promise<Campaign> => {
     include: [
       { model: CampaignShipping },
       { model: ContactList, include: [{ model: ContactListItem }] },
-      //{ model: Whatsapp, attributes: ["id", "name"] }
+      { model: Whatsapp, attributes: ["id", "name"] }
     ]
   });
 

@@ -1,5 +1,6 @@
-import React, { useState, useContext, useEffect } from "react";//import { Link as RouterLink } from "react-router-dom";
+import React, { useState, useContext } from "react";
 import { Link as RouterLink } from "react-router-dom";
+
 import Button from "@material-ui/core/Button";
 import CssBaseline from "@material-ui/core/CssBaseline";
 import TextField from "@material-ui/core/TextField";
@@ -9,19 +10,22 @@ import Box from "@material-ui/core/Box";
 import Typography from "@material-ui/core/Typography";
 import { makeStyles } from "@material-ui/core/styles";
 import Container from "@material-ui/core/Container";
-import api from "../../services/api";
+import { versionSystem } from "../../../package.json";
 import { i18n } from "../../translate/i18n";
-
+import { nomeEmpresa } from "../../../package.json";
 import { AuthContext } from "../../context/Auth/AuthContext";
+import logo from "../../assets/logo.png";
+
 
 const Copyright = () => {
 	return (
-		<Typography variant="body2" color="powered" align="center">
+		<Typography variant="body2" color="primary" align="center">
 			{"Copyright "}
-
-			{new Date().getFullYear()}{" - "}
-
- 			{`${process.env.REACT_APP_NAME_SYSTEM}`}
+ 			<Link color="primary" href="#">
+ 				{ nomeEmpresa } - v { versionSystem }
+ 			</Link>{" "}
+ 			{new Date().getFullYear()}
+ 			{"."}
  		</Typography>
  	);
  };
@@ -30,11 +34,11 @@ const useStyles = makeStyles(theme => ({
 	root: {
 		width: "100vw",
 		height: "100vh",
-		// background: `${process.env.REACT_APP_BACKDROP_LOADING}`,
-		// backgroundImage: "url(https://th.bing.com/th/id/OIP.YRbnvsV4zu-8RejDYPrlKwHaDt?pid=ImgDet&rs=1)",
-		// backgroundRepeat: "no-repeat",
-		// backgroundSize: "100% 100%",
-		// backgroundPosition: "center",
+		//background: "linear-gradient(to right, #76EE00 , #76EE00 , #458B00)",
+		backgroundImage: "url(https://i.imgur.com/CGby9tN.png)",
+		backgroundRepeat: "no-repeat",
+		backgroundSize: "100% 100%",
+		backgroundPosition: "center",
 		display: "flex",
 		flexDirection: "column",
 		alignItems: "center",
@@ -42,7 +46,7 @@ const useStyles = makeStyles(theme => ({
 		textAlign: "center",
 	},
 	paper: {
-		backgroundColor: "white",
+		backgroundColor: theme.palette.login, //RESULTADO IMEDIATO//
 		display: "flex",
 		flexDirection: "column",
 		alignItems: "center",
@@ -61,7 +65,7 @@ const useStyles = makeStyles(theme => ({
 		margin: theme.spacing(3, 0, 2),
 	},
 	powered: {
-		color: `${process.env.REACT_APP_POWERED_COLOR_LOGIN}`,
+		color: "white"
 	}
 }));
 
@@ -72,49 +76,6 @@ const Login = () => {
 
 	const { handleLogin } = useContext(AuthContext);
 
-    const [backdropColor, setbackdropColor] = useState('');
-    const [viewregister, setviewregister] = useState('disabled');
-
-  	useEffect(() => {
-    	fetchBackdropBackground();
-  	}, []);
-
-    useEffect(() => {
-    	fetchviewregister();
-  	}, []);
-
-  	const fetchBackdropBackground = async () => {
-  
- 
-    try {
-    	const response = await api.get("/settings/backgroundPages");
-      	const backdropBackground = response?.data?.value;
-      	
-      	setbackdropColor(backdropBackground);
-    	} catch (error) {
-    		console.error('Error retrieving toolbar background color', error);
-    	}
-  	};
-
-  	const backdropStyle = {
-    	background: backdropColor,
-  	};
-
-
-	const fetchviewregister = async () => {
-  
- 
-    try {
-    	const responsev = await api.get("/settings/viewregister");
-      	const viewregisterX = responsev?.data?.value;
-      	// console.log(viewregisterX);
-      	setviewregister(viewregisterX);
-    	} catch (error) {
-    		console.error('Error retrieving viewregister', error);
-    	}
-  	};
-
-
 	const handleChangeInput = e => {
 		setUser({ ...user, [e.target.name]: e.target.value });
 	};
@@ -124,26 +85,20 @@ const Login = () => {
 		handleLogin(user);
 	};
 
-    const logo = `${process.env.REACT_APP_BACKEND_URL}/public/logotipos/login.png`;
-	const linksuporte = `${process.env.REACT_APP_LINK_SUPORTE}`;
-    const randomValue = Math.random(); // Generate a random number
-  
-    const logoWithRandom = `${logo}?r=${randomValue}`;
-
 	return (
-		<div className={classes.root} style={backdropStyle}>
+		<div className={classes.root}>
 		<Container component="main" maxWidth="xs">
 			<CssBaseline/>
 			<div className={classes.paper}>
 				<div>
-					<img style={{ margin: "0 auto", width: "80%" }} src={logoWithRandom} alt={`${process.env.REACT_APP_NAME_SYSTEM}`} />
+					<img style={{ margin: "0 auto", width: "100%" }} src={logo} alt="Whats" />
 				</div>
 				{/*<Typography component="h1" variant="h5">
 					{i18n.t("login.title")}
 				</Typography>*/}
 				<form className={classes.form} noValidate onSubmit={handlSubmit}>
 					<TextField
-						variant="standard"
+						variant="outlined"
 						margin="normal"
 						required
 						fullWidth
@@ -156,7 +111,7 @@ const Login = () => {
 						autoFocus
 					/>
 					<TextField
-						variant="standard"
+						variant="outlined"
 						margin="normal"
 						required
 						fullWidth
@@ -168,6 +123,15 @@ const Login = () => {
 						onChange={handleChangeInput}
 						autoComplete="current-password"
 					/>
+					
+					<Grid container justify="flex-end">
+					  <Grid item xs={6} style={{ textAlign: "right" }}>
+						<Link component={RouterLink} to="/forgetpsw" variant="body2">
+						  Esqueceu sua senha?
+						</Link>
+					  </Grid>
+					</Grid>
+					
 					<Button
 						type="submit"
 						fullWidth
@@ -177,9 +141,7 @@ const Login = () => {
 					>
 						{i18n.t("login.buttons.submit")}
 					</Button>
-                    {viewregister === "enabled" && (
-                    <>
-					<Grid container>
+					{ <Grid container>
 						<Grid item>
 							<Link
 								href="#"
@@ -190,35 +152,11 @@ const Login = () => {
 								{i18n.t("login.buttons.register")}
 							</Link>
 						</Grid>
-					</Grid>
-                    </>
-                    )}
-                    <Grid container>
-						<Grid item>
-							<Link
-								href="#"
-								variant="body2"
-								component={RouterLink}
-								to="/forgotpassword"
-							>
-								{i18n.t("login.buttons.forgotpassword")}
-							</Link>
-						</Grid>
-					</Grid>
+					</Grid> }
 				</form>
 			
 			</div>
-			
-			
-			<Box mt={5} style={{ color: "white" }}>{ <Copyright /> }
-			<Link style={{ color: "white" }}
-				href={linksuporte}
-				variant="body2"
-			>
-				Suporte
-			</Link>
-			</Box>
-			
+			<Box mt={8}><Copyright /></Box>
 		</Container>
 		</div>
 	);

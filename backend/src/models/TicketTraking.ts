@@ -14,7 +14,6 @@ import Company from "./Company";
 import User from "./User";
 import Ticket from "./Ticket";
 import Whatsapp from "./Whatsapp";
-import Rating from "./Rating";
 
 @Table({
   tableName: "TicketTraking"
@@ -35,10 +34,6 @@ class TicketTraking extends Model<TicketTraking> {
   @ForeignKey(() => Company)
   @Column
   companyId: number;
-
-  @ForeignKey(() => Rating)
-  @Column
-  ratingId: number;
 
   @BelongsTo(() => Company)
   company: Company;
@@ -77,6 +72,9 @@ class TicketTraking extends Model<TicketTraking> {
 
   @Column
   ratingAt: Date;
+
+  @Column
+  chatbotAt: Date;
 }
 
 export default TicketTraking;

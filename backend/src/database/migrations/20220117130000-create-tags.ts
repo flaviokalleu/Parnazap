@@ -17,10 +17,6 @@ module.exports = {
         type: DataTypes.STRING,
         allowNull: true
       },
-      kanban: {
-        type: DataTypes.INTEGER,
-        allowNull: true
-      },
       companyId: {
         type: DataTypes.INTEGER,
         references: { model: "Companies", key: "id" },

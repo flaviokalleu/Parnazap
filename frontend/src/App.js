@@ -1,167 +1,116 @@
-import React, { useContext, useState, useEffect } from 'react';
-import Routes from './routes';
-import 'react-toastify/dist/ReactToastify.css';
-import { createTheme, ThemeProvider } from '@material-ui/core/styles';
-import { ptBR } from '@material-ui/core/locale';
-import EventEmitter from 'eventemitter3';
-import {
-  CssBaseline,
-  Switch,
-  FormGroup,
-  FormControlLabel,
-  makeStyles,
-} from '@material-ui/core';
-import lightBackground from '../src/assets/wa-background-light.png';
-import darkBackground from '../src/assets/wa-background-dark.jpg';
-import MomentUtils from '@date-io/moment';
-import moment from 'moment';
+import React, { useState, useEffect } from "react";
 
-import api from '../src/services/api';
-import { DatePickerField } from './components/FormFields';
-import {
-  KeyboardDatePicker,
-  MuiPickersUtilsProvider,
-} from '@material-ui/pickers';
-import DateFnsUtils from '@date-io/date-fns';
-import { format } from 'date-fns';
-import { SocketContext, socketManager } from './context/Socket/SocketContext';
+import "react-toastify/dist/ReactToastify.css";
+import { QueryClient, QueryClientProvider } from "react-query";
 
+import { ptBR } from "@material-ui/core/locale";
+import { createTheme, ThemeProvider } from "@material-ui/core/styles";
+import { useMediaQuery } from "@material-ui/core";
+import ColorModeContext from "./layout/themeContext";
+import { SocketContext, SocketManager } from './context/Socket/SocketContext';
 
+import Routes from "./routes";
 
-const useStyles = makeStyles(() => ({
-  switch: {
-    margin: '2px',
-    position: 'absolute',
-    right: '0',
-  },
-  visible: {
-    display: 'none',
-  },
-}));
-
-export const mainEvents = new EventEmitter();
+const queryClient = new QueryClient();
 
 const App = () => {
-  const [locale, setLocale] = useState();
-  const [checked, setChecked] = React.useState(false);
-  const [mainColor, setMainColor] = useState('#000000');
-  const [scrollbarColor, setScrollbarColor] = useState('#000000');
-  const classes = useStyles();
+    const [locale, setLocale] = useState();
 
-  useEffect(() => {
-    fetchMainColor();
-  }, []);
+    const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
+    const preferredTheme = window.localStorage.getItem("preferredTheme");
+    const [mode, setMode] = useState(preferredTheme ? preferredTheme : prefersDarkMode ? "dark" : "light");
 
-  const fetchMainColor = async () => {
-    try {
-      const response = await api.get('/settings/mainColor');
-      const fetchedColor = response.data?.value;
-      //console.log(fetchedColor);
-      setMainColor(fetchedColor);
-    } catch (error) {
-      console.error('Error retrieving main color', error);
-    }
-  };
-
-  useEffect(() => {
-    fetchScrollbarColor();
-  }, []);
-
-  const fetchScrollbarColor = async () => {
-    try {
-      const response = await api.get('/settings/scrollbarColor');
-      const fetchedColor = response.data?.value;
-      //console.log(fetchedColor);
-      setScrollbarColor(fetchedColor);
-    } catch (error) {
-      console.error('Error retrieving scrollbar color', error);
-    }
-  };
-
-  useEffect(() => {
-    // Pass the scrollbar color to the index.html file
-    document.documentElement.style.setProperty(
-      '--scrollbar-color',
-      scrollbarColor
-    );
-  }, [scrollbarColor]);
-
-  const lightTheme = createTheme(
-    {
-      palette: {
-        primary: { main: mainColor },
-        secondary: { main: mainColor },
-        error: { main: '#ff0000' }, // cor dos icones
-      },
-      backgroundImage: `url(${lightBackground})`,
-    },
-    locale
-  );
-
-  const darkTheme = createTheme(
-    {
-      overrides: {
-        MuiCssBaseline: {
-          '@global': {
-            body: {
-              backgroundColor: '#1d2230',
+    const colorMode = React.useMemo(
+        () => ({
+            toggleColorMode: () => {
+                setMode((prevMode) => (prevMode === "light" ? "dark" : "light"));
             },
-          },
+        }),
+        []
+    );
+
+    const theme = createTheme(
+        {
+            scrollbarStyles: {
+                "&::-webkit-scrollbar": {
+                    width: '8px',
+                    height: '8px',
+                },
+                "&::-webkit-scrollbar-thumb": {
+                    boxShadow: 'inset 0 0 6px rgba(0, 0, 0, 0.3)',
+                    backgroundColor: "#2DDD7F",
+                },
+            },
+            scrollbarStylesSoft: {
+                "&::-webkit-scrollbar": {
+                    width: "8px",
+                },
+                "&::-webkit-scrollbar-thumb": {
+                    backgroundColor: mode === "light" ? "#F3F3F3" : "#333333",
+                },
+            },
+            palette: {
+                type: mode,
+                primary: { main: mode === "light" ? "#2DDD7F" : "#FFFFFF" },
+                textPrimary: mode === "light" ? "#2DDD7F" : "#FFFFFF",
+                borderPrimary: mode === "light" ? "#2DDD7F" : "#FFFFFF",
+                dark: { main: mode === "light" ? "#333333" : "#F3F3F3" },
+                light: { main: mode === "light" ? "#F3F3F3" : "#333333" },
+                tabHeaderBackground: mode === "light" ? "#EEE" : "#666",
+                optionsBackground: mode === "light" ? "#fafafa" : "#333",
+				options: mode === "light" ? "#fafafa" : "#666",
+				fontecor: mode === "light" ? "#128c7e" : "#fff",
+                fancyBackground: mode === "light" ? "#fafafa" : "#333",
+				bordabox: mode === "light" ? "#eee" : "#333",
+				newmessagebox: mode === "light" ? "#eee" : "#333",
+				inputdigita: mode === "light" ? "#fff" : "#666",
+				contactdrawer: mode === "light" ? "#fff" : "#666",
+				announcements: mode === "light" ? "#ededed" : "#333",
+				login: mode === "light" ? "#fff" : "#1C1C1C",
+				announcementspopover: mode === "light" ? "#fff" : "#666",
+				chatlist: mode === "light" ? "#eee" : "#666",
+				boxlist: mode === "light" ? "#ededed" : "#666",
+				boxchatlist: mode === "light" ? "#ededed" : "#333",
+                total: mode === "light" ? "#fff" : "#222",
+                messageIcons: mode === "light" ? "grey" : "#F3F3F3",
+                inputBackground: mode === "light" ? "#FFFFFF" : "#333",
+                barraSuperior: mode === "light" ? "linear-gradient(to right, #2DDD7F, #2DDD7F , #2DDD7F)" : "#666",
+				boxticket: mode === "light" ? "#EEE" : "#666",
+				campaigntab: mode === "light" ? "#ededed" : "#666",
+				mediainput: mode === "light" ? "#ededed" : "#1c1c1c",
+            },
+            mode,
         },
-      },
-      palette: {
-        primary: { main: '#7d9bfa' },
-        divider: '#464a5c',
-        secondary: { main: '#eee' },
-        error: { main: '#ff0000' }, // cor dos icones
-        background: {
-          default: '#1d2230',
-          paper: '#2c3145',
-        },
-        text: {
-          primary: '#eee',
-          secondary: '#fff',
-        },
-      },
-      backgroundImage: `url(${darkBackground})`,
-    },
-    locale
-  );
+        locale
+    );
 
-  const cacheTheme = localStorage.getItem('layout-theme') || 'light';
+    useEffect(() => {
+        const i18nlocale = localStorage.getItem("i18nextLng");
+        const browserLocale =
+            i18nlocale.substring(0, 2) + i18nlocale.substring(3, 5);
 
-  const [theme, setTheme] = useState(cacheTheme);
+        if (browserLocale === "ptBR") {
+            setLocale(ptBR);
+        }
+    }, []);
 
-  const themeToggle = () => {
-    const updatedTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(updatedTheme);
-    localStorage.setItem('layout-theme', updatedTheme);
-  };
+    useEffect(() => {
+        window.localStorage.setItem("preferredTheme", mode);
+    }, [mode]);
 
-  const handleChange = () => {
-    themeToggle();
-  };
 
-  mainEvents.on('toggle-theme', handleChange);
 
-  useEffect(() => {
-    const i18nlocale = localStorage.getItem('i18nextLng');
-    const browserLocale =
-      i18nlocale.substring(0, 2) + i18nlocale.substring(3, 5);
-
-    if (browserLocale === 'ptBR') {
-      setLocale(ptBR);
-    }
-  }, []);
-
-  return (
-    <ThemeProvider theme={theme === 'light' ? lightTheme : darkTheme}>
-     <SocketContext.Provider value={socketManager}>
-      <Routes />
-      <CssBaseline />
-     </SocketContext.Provider>
-    </ThemeProvider>
-  );
+    return (
+        <ColorModeContext.Provider value={{ colorMode }}>
+            <ThemeProvider theme={theme}>
+                <QueryClientProvider client={queryClient}>
+                  <SocketContext.Provider value={SocketManager}>
+                      <Routes />
+                  </SocketContext.Provider>
+                </QueryClientProvider>
+            </ThemeProvider>
+        </ColorModeContext.Provider>
+    );
 };
 
 export default App;

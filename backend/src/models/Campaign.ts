@@ -14,6 +14,7 @@ import CampaignShipping from "./CampaignShipping";
 import Company from "./Company";
 import ContactList from "./ContactList";
 import Whatsapp from "./Whatsapp";
+import Files from "./Files";
 
 @Table({ tableName: "Campaigns" })
 class Campaign extends Model<Campaign> {
@@ -93,24 +94,19 @@ class Campaign extends Model<Campaign> {
   @BelongsTo(() => ContactList)
   contactList: ContactList;
 
-  @Column
-  whatsappId: string;
-
-  @Column
-  whatsappName: string;
-
-  @Column
-  tagId: number;
-
-/*
   @ForeignKey(() => Whatsapp)
   @Column
   whatsappId: number;
 
   @BelongsTo(() => Whatsapp)
-  
   whatsapp: Whatsapp;
-*/
+
+  @ForeignKey(() => Files)
+  @Column
+  fileListId: number;
+
+  @BelongsTo(() => Files)
+  fileList: Files;
 
   @HasMany(() => CampaignShipping)
   shipping: CampaignShipping[];

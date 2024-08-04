@@ -1,29 +1,24 @@
 import * as Yup from "yup";
 import { Request, Response } from "express";
 import { getIO } from "../libs/socket";
-import { head } from "lodash";
-import Contact from "../models/Contact";
+
 import ListContactsService from "../services/ContactServices/ListContactsService";
-import ListContactsServiceNT from "../services/ContactServices/ListContactsServiceNT";
 import CreateContactService from "../services/ContactServices/CreateContactService";
 import ShowContactService from "../services/ContactServices/ShowContactService";
 import UpdateContactService from "../services/ContactServices/UpdateContactService";
 import DeleteContactService from "../services/ContactServices/DeleteContactService";
 import GetContactService from "../services/ContactServices/GetContactService";
-import ListWalletContactService from "../services/ContactServices/ListWalletContactService";
 
 import CheckContactNumber from "../services/WbotServices/CheckNumber";
 import CheckIsValidContact from "../services/WbotServices/CheckIsValidContact";
+import GetProfilePicUrl from "../services/WbotServices/GetProfilePicUrl";
 import AppError from "../errors/AppError";
 import SimpleListService, {
   SearchContactParams
 } from "../services/ContactServices/SimpleListService";
 import ContactCustomField from "../models/ContactCustomField";
-import ToggleAcceptAudioContactService from "../services/ContactServices/ToggleAcceptAudioContactService";
-import BlockUnblockContactService from "../services/ContactServices/BlockUnblockContactService";
-import { ImportContactsService } from "../services/ContactServices/ImportContactsService";
-import User from "../models/User";
-
+import {head} from "lodash";
+import {ImportContacts} from "../services/ContactServices/ImportContacts";
 
 type IndexQuery = {
   searchParam: string;
@@ -44,8 +39,6 @@ interface ContactData {
   number: string;
   email?: string;
   extraInfo?: ExtraInfo[];
-  disableBot?: boolean;
-  walleteUserId?: number;
 }
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
@@ -53,39 +46,6 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
   const { companyId } = req.user;
 
   const { contacts, count, hasMore } = await ListContactsService({
-    searchParam,
-    pageNumber,
-    companyId
-  });
-
-  return res.json({ contacts, count, hasMore });
-};
-
-export const indexWallet = async (req: Request, res: Response): Promise<Response> => {
-  const { searchParam, pageNumber } = req.query as IndexQuery;
-  const {companyId } = req.user;
-  const {id} = req.user
-
-  const profileUser = await User.findByPk(parseInt(id),{
-    attributes:['profile']
-  })
-
-  const { contacts, count, hasMore } = await ListWalletContactService({
-    searchParam,
-    pageNumber,
-    companyId,
-    walleteUserId: parseInt(id),
-    profileUser: profileUser.profile
-  });
-
-  return res.json({ contacts, count, hasMore });
-};
-
-export const nt = async (req: Request, res: Response): Promise<Response> => {
-  const { searchParam, pageNumber } = req.query as IndexQuery;
-  const { companyId } = req.user;
-
-  const { contacts, count, hasMore } = await ListContactsServiceNT({
     searchParam,
     pageNumber,
     companyId
@@ -128,40 +88,18 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     throw new AppError(err.message);
   }
 
-    try {
-  	await CheckIsValidContact(newContact.number, companyId);
-  	const validNumber = await CheckContactNumber(newContact.number, companyId);
-  	const number = validNumber.jid.replace(/\D/g, "");
-  	newContact.number = number;
-
-  } catch (error) {
-  	// Handle the error and return an error response
-  	return res.status(500).json({ invalido: true });
-  }
-
-  // Check if the contact already exists
-  const existingContact = await Contact.findOne({
-    where: {
-      number: newContact.number,
-      companyId
-    }
-  });
-  
-  if (existingContact) {
-    // Contact already exists, send the existing contact data as the response
-    return res.status(200).json({ alreadyExists: true, existingContact });
-  }
+  await CheckIsValidContact(newContact.number, companyId);
+  const validNumber = await CheckContactNumber(newContact.number, companyId);
+  const number = validNumber.jid.replace(/\D/g, "");
+  newContact.number = number;
 
   /**
    * Código desabilitado por demora no retorno
    */
   // const profilePicUrl = await GetProfilePicUrl(validNumber.jid, companyId);
 
-  console.log('newContact',newContact)
-
   const contact = await CreateContactService({
     ...newContact,
-    //number,
     // profilePicUrl,
     companyId
   });
@@ -207,13 +145,10 @@ export const update = async (
 
   await CheckIsValidContact(contactData.number, companyId);
   const validNumber = await CheckContactNumber(contactData.number, companyId);
-  //const number = validNumber;
   const number = validNumber.jid.replace(/\D/g, "");
   contactData.number = number;
 
   const { contactId } = req.params;
-
-  console.log('contactData?.walleteUserId',contactData?.walleteUserId)
 
   const contact = await UpdateContactService({
     contactData,
@@ -259,54 +194,17 @@ export const list = async (req: Request, res: Response): Promise<Response> => {
   return res.json(contacts);
 };
 
-export const toggleAcceptAudio = async (
-  req: Request,
-  res: Response
-): Promise<Response> => {
-  var { contactId } = req.params;
-  const { companyId } = req.user;
-
-  const contact = await ToggleAcceptAudioContactService({ contactId });
-
-  const io = getIO();
- io.to(`company-${companyId}-mainchannel`).emit("contact", {
-    action: "update",
-    contact
-  });
-
-  return res.status(200).json(contact);
-};
-
-export const blockUnblock = async (
-  req: Request,
-  res: Response
-): Promise<Response> => {
-  var { contactId } = req.params;
-  const { companyId } = req.user;
-  const { active } = req.body;
-
-  const contact = await BlockUnblockContactService({ contactId, companyId, active });
-
-  const io = getIO();
- io.emit("contact", {
-    action: "update",
-    contact
-  });
-
-  return res.status(200).json(contact);
-};
-
 export const upload = async (req: Request, res: Response) => {
   const files = req.files as Express.Multer.File[];
   const file: Express.Multer.File = head(files) as Express.Multer.File;
   const { companyId } = req.user;
 
-  const response = await ImportContactsService(companyId, file);
+  const response = await ImportContacts(companyId, file);
 
   const io = getIO();
 
- io.emit(`company-${companyId}-contact`, {
-    action: "reload",
+  io.to(`company-${companyId}-mainchannel`).emit(`company-${companyId}-contact`, {
+    action: "create",
     records: response
   });
 

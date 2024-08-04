@@ -34,8 +34,6 @@ import toastError from "../../errors/toastError";
 import { Grid } from "@material-ui/core";
 
 import planilhaExemplo from "../../assets/planilha.xlsx";
-import { socketConnection } from "../../services/socket";
-import { AuthContext } from "../../context/Auth/AuthContext";
 import { SocketContext } from "../../context/Socket/SocketContext";
 
 const reducer = (state, action) => {
@@ -104,7 +102,7 @@ const ContactLists = () => {
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [searchParam, setSearchParam] = useState("");
   const [contactLists, dispatch] = useReducer(reducer, []);
-  const {user} = useContext(AuthContext)
+
   const socketManager = useContext(SocketContext);
 
   useEffect(() => {
@@ -134,9 +132,9 @@ const ContactLists = () => {
 
   useEffect(() => {
     const companyId = localStorage.getItem("companyId");
-    const socket = socketManager.GetSocket(companyId);
+    const socket = socketManager.getSocket(companyId);
 
-    const onContactList = (data) => {
+    socket.on(`company-${companyId}-ContactList`, (data) => {
       if (data.action === "update" || data.action === "create") {
         dispatch({ type: "UPDATE_CONTACTLIST", payload: data.record });
       }
@@ -144,9 +142,7 @@ const ContactLists = () => {
       if (data.action === "delete") {
         dispatch({ type: "DELETE_CONTACTLIST", payload: +data.id });
       }
-    }
-    
-    socket.on(`company-${companyId}-ContactList`, onContactList);
+    });
 
     return () => {
       socket.disconnect();

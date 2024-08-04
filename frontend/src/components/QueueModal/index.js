@@ -3,6 +3,10 @@ import React, { useState, useEffect, useRef } from "react";
 import * as Yup from "yup";
 import { Formik, Form, Field } from "formik";
 import { toast } from "react-toastify";
+import { head } from "lodash";
+import FormControlLabel from "@material-ui/core/FormControlLabel";
+import Switch from "@material-ui/core/Switch";
+
 
 import { makeStyles } from "@material-ui/core/styles";
 import { green } from "@material-ui/core/colors";
@@ -12,9 +16,6 @@ import Dialog from "@material-ui/core/Dialog";
 import DialogActions from "@material-ui/core/DialogActions";
 import DialogContent from "@material-ui/core/DialogContent";
 import DialogTitle from "@material-ui/core/DialogTitle";
-import { Select, MenuItem } from '@material-ui/core';
-import TabPanel from "../../components/TabPanel";
-
 import CircularProgress from "@material-ui/core/CircularProgress";
 
 import { i18n } from "../../translate/i18n";
@@ -24,19 +25,20 @@ import toastError from "../../errors/toastError";
 import ColorPicker from "../ColorPicker";
 import {
   FormControl,
-  FormControlLabel,
+  Grid,
   IconButton,
   InputAdornment,
+  InputLabel,
+  MenuItem,
   Paper,
-  Switch,
+  Select,
   Tab,
   Tabs,
-  Grid,
-  InputLabel,
 } from "@material-ui/core";
-import { Colorize } from "@material-ui/icons";
+import { AttachFile, Colorize, DeleteOutline } from "@material-ui/icons";
 import { QueueOptions } from "../QueueOptions";
 import SchedulesForm from "../SchedulesForm";
+import ConfirmationModal from "../ConfirmationModal";
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -48,14 +50,6 @@ const useStyles = makeStyles((theme) => ({
     flex: 1,
   },
 
-  btnWrapper: {
-    position: "relative",
-  },
-  selectField: {
-    marginRight: theme.spacing(1),
-    flex: 1,
-    minWidth: "300px"
-  },
   btnWrapper: {
     position: "relative",
   },
@@ -76,13 +70,6 @@ const useStyles = makeStyles((theme) => ({
     width: 20,
     height: 20,
   },
-  fullWidth: {
-    width: "100%",
-  },
-  selectContainer: {
-    width: "100%",
-    textAlign: "left",
-  },
 }));
 
 const QueueSchema = Yup.object().shape({
@@ -92,49 +79,56 @@ const QueueSchema = Yup.object().shape({
     .required("Required"),
   color: Yup.string().min(3, "Too Short!").max(9, "Too Long!").required(),
   greetingMessage: Yup.string(),
-  prioridade: Yup.number().required(),
-  isChatbot: Yup.boolean(), //RODRIGO - TRATAMENTO ALTERAÇÃO DO CHATBOT
 });
 
-const QueueModal = ({ open, onClose, queueId, companyId }) => {
+const QueueModal = ({ open, onClose, queueId }) => {
   const classes = useStyles();
 
   const initialState = {
     name: "",
     color: "",
-    prioridade: "",
     greetingMessage: "",
     outOfHoursMessage: "",
-    tempoRoteador: "0",
+	tempoRoteador: "0",
     ativarRoteador: false,
-    isChatbot: false, 
-    typeChatbot: "",
-    n8n:"",
-    n8nId:"",
-    workspaceTypebot: "",
-    typebotId: "",
-    resetChatbotMsg: false
+    orderQueue: "",
+    integrationId: "",
+    promptId: ""
   };
 
   const [colorPickerModalOpen, setColorPickerModalOpen] = useState(false);
   const [queue, setQueue] = useState(initialState);
+  const [tab, setTab] = useState(0);
   const [schedulesEnabled, setSchedulesEnabled] = useState(false);
+  const [attachment, setAttachment] = useState(null);
+  const attachmentFile = useRef(null);
   const greetingRef = useRef();
-  const [tab, setTab] = useState("queueDados");
-  const [workspaceTypebots, setWorkspaceTypebots] = useState([]);
-  const [workflowN8N, setWorkFlowN8N] = useState([]);
-  const [typeBots, setTypebots] = useState([]);
-  const [n8ns, setN8ns] = useState([]);
+  const [integrations, setIntegrations] = useState([]);
+  const [queueEditable, setQueueEditable] = useState(true);
+  const [confirmationOpen, setConfirmationOpen] = useState(false);
 
   const [schedules, setSchedules] = useState([
-    { weekday: "Segunda-feira",weekdayEn: "monday",startTime: "08:00",endTime: "18:00",},
-    { weekday: "Terça-feira",weekdayEn: "tuesday",startTime: "08:00",endTime: "18:00",},
-    { weekday: "Quarta-feira",weekdayEn: "wednesday",startTime: "08:00",endTime: "18:00",},
-    { weekday: "Quinta-feira",weekdayEn: "thursday",startTime: "08:00",endTime: "18:00",},
-    { weekday: "Sexta-feira", weekdayEn: "friday",startTime: "08:00",endTime: "18:00",},
-    { weekday: "Sábado", weekdayEn: "saturday",startTime: "08:00",endTime: "12:00",},
-    { weekday: "Domingo", weekdayEn: "sunday",startTime: "00:00",endTime: "00:00",},
+    { weekday: "Segunda-feira", weekdayEn: "monday", startTime: "08:00", endTime: "18:00", },
+    { weekday: "Terça-feira", weekdayEn: "tuesday", startTime: "08:00", endTime: "18:00", },
+    { weekday: "Quarta-feira", weekdayEn: "wednesday", startTime: "08:00", endTime: "18:00", },
+    { weekday: "Quinta-feira", weekdayEn: "thursday", startTime: "08:00", endTime: "18:00", },
+    { weekday: "Sexta-feira", weekdayEn: "friday", startTime: "08:00", endTime: "18:00", },
+    { weekday: "Sábado", weekdayEn: "saturday", startTime: "08:00", endTime: "12:00", },
+    { weekday: "Domingo", weekdayEn: "sunday", startTime: "00:00", endTime: "00:00", },
   ]);
+  const [selectedPrompt, setSelectedPrompt] = useState(null);
+  const [prompts, setPrompts] = useState([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await api.get("/prompt");
+        setPrompts(data.prompts);
+      } catch (err) {
+        toastError(err);
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     api.get(`/settings`).then(({ data }) => {
@@ -149,12 +143,26 @@ const QueueModal = ({ open, onClose, queueId, companyId }) => {
 
   useEffect(() => {
     (async () => {
+      try {
+        const { data } = await api.get("/queueIntegration");
+
+        setIntegrations(data.queueIntegrations);
+      } catch (err) {
+        toastError(err);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
       if (!queueId) return;
       try {
         const { data } = await api.get(`/queue/${queueId}`);
         setQueue((prevState) => {
           return { ...prevState, ...data };
         });
+        data.promptId ? setSelectedPrompt(data.promptId) : setSelectedPrompt(null);
+
         setSchedules(data.schedules);
       } catch (err) {
         toastError(err);
@@ -164,109 +172,62 @@ const QueueModal = ({ open, onClose, queueId, companyId }) => {
     return () => {
       setQueue({
         name: "",
-        prioridade: "",
         color: "",
         greetingMessage: "",
-        tempoRoteador: "0",
-        ativarRoteador: false,
-        isChatbot: false,
-        typeChatbot: "",
-        n8n:"",
-        n8nId:"",
-        workspaceTypebot: "",
-        typebotId: "",
-        resetChatbotMsg: false
+        outOfHoursMessage: "",
+        orderQueue: "",
+        integrationId: ""
       });
     };
   }, [queueId, open]);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const { data } = await api.get(`/typebot/listworkspaces`);
-        // console.log(data)
-        if (data?.workspaces && data.workspaces?.length > 0 ) {
-          setWorkspaceTypebots(data?.workspaces);
-        }
-      } catch (err) {
-        toastError(err);
-      }
-    })();
-  }, []);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const { data } = await api.get(`/n8n/listworkFlow`);
-        if (data?.data && data?.data?.length > 0) {
-          const extractedData = data?.data?.map(item => ({
-            id: item.id, // Substitua 'id' pelo nome real da propriedade
-            name: item.name
-          }));
-          // console.log(extractedData)
-          setWorkFlowN8N(extractedData);
-        }
-      } catch (err) {
-        toastError(err);
-      }
-    })();
-  }, []);
-
-  useEffect(() => {
-    if (queueId && queue?.workspaceTypebot) {
-      (async () => {
-        try {
-          const { data } = await api.get(`/typebot/listtypebots`, {
-            params: {
-              workspaceId: queue?.workspaceTypebot
-            }
-          });
-          // console.log("list ",data)
-          if (data?.typebots && data?.typebots.length > 0) {
-            setTypebots(data?.typebots);
-           }
-        } catch (err) {
-          toastError(err);
-        }
-      })();
-    }
-  }, [queueId, queue]);
-
   const handleClose = () => {
     onClose();
     setQueue(initialState);
-    setTab("queueDados");
   };
 
-  const handleChangeWorkspace = async (workspace) => {
-    if(!workspace) {
-      setTypebots([])
-      return;
+  const handleAttachmentFile = (e) => {
+    const file = head(e.target.files);
+    if (file) {
+      setAttachment(file);
     }
-    try {
-      const { data } = await api.get(`/typebot/listtypebots`, {
-        params: {
-          workspaceId: workspace
-        }
-      });
-      // console.log(data)
-      if (data?.typebots && data?.typebots?.length > 0 ) {
-        setTypebots(data.typebots);
-      } else {
-        setTypebots([])
-      }
-    } catch (err) {
-      toastError(err);
+  };
+
+
+  const deleteMedia = async () => {
+    if (attachment) {
+      setAttachment(null);
+      attachmentFile.current.value = null;
     }
-  }
+
+    if (queue.mediaPath) {
+      await api.delete(`/queue/${queue.id}/media-upload`);
+      setQueue((prev) => ({ ...prev, mediaPath: null, mediaName: null }));
+      toast.success(i18n.t("queueModal.toasts.deleted"));
+    }
+  };
 
   const handleSaveQueue = async (values) => {
     try {
       if (queueId) {
-        await api.put(`/queue/${queueId}`, { ...values, schedules });
+        await api.put(`/queue/${queueId}`, {
+          ...values, schedules, promptId: selectedPrompt ? selectedPrompt : null
+        });
+		if (attachment != null) {
+          const formData = new FormData();
+          formData.append("file", attachment);
+          await api.post(`/queue/${queueId}/media-upload`, formData);
+        }
       } else {
-        await api.post("/queue", { ...values, schedules });
+        await api.post("/queue", {
+          ...values, schedules, promptId: selectedPrompt ? selectedPrompt : null
+        });
+		if (attachment != null) {
+          const formData = new FormData();
+          formData.append("file", attachment);
+          await api.post(`/queue/${queueId}/media-upload`, formData);
       }
+	  }
       toast.success("Queue saved successfully");
       handleClose();
     } catch (err) {
@@ -280,20 +241,37 @@ const QueueModal = ({ open, onClose, queueId, companyId }) => {
     setTab(0);
   };
 
+  const handleChangePrompt = (e) => {
+    setSelectedPrompt(e.target.value);
+  };
+
   return (
     <div className={classes.root}>
-      <Dialog
-        maxWidth="md"
-        fullWidth={true}
-        open={open}
-        onClose={handleClose}
-        scroll="paper"
-      >
-        <DialogTitle>
-          {queueId
-            ? `${i18n.t("queueModal.title.edit")}`
-            : `${i18n.t("queueModal.title.add")}`}
-        </DialogTitle>
+    <ConfirmationModal
+        title={i18n.t("queueModal.confirmationModal.deleteTitle")}
+        open={confirmationOpen}
+        onClose={() => setConfirmationOpen(false)}
+        onConfirm={deleteMedia}
+      ></ConfirmationModal>
+    <Dialog
+    maxWidth="md"
+    fullWidth={true}
+    open={open}
+    onClose={handleClose}
+    scroll="paper"
+  >
+    <DialogTitle>
+      {queueId
+        ? `${i18n.t("queueModal.title.edit")}`
+        : `${i18n.t("queueModal.title.add")}`}
+       <div style={{ display: "none" }}>
+        <input
+          type="file"
+          ref={attachmentFile}
+          onChange={(e) => handleAttachmentFile(e)}
+        />
+      </div>
+    </DialogTitle>
         <Tabs
           value={tab}
           indicatorColor="primary"
@@ -301,11 +279,10 @@ const QueueModal = ({ open, onClose, queueId, companyId }) => {
           onChange={(_, v) => setTab(v)}
           aria-label="disabled tabs example"
         >
-          <Tab label="Dados da Fila" value='queueDados' />
-          {schedulesEnabled && <Tab label="Horários de Atendimento" value='expediente' />}
-          <Tab label="Integrações" value='integracoes' />
+          <Tab label="Dados da Fila" />
+          {schedulesEnabled && <Tab label="Horários de Atendimento" />}
         </Tabs>
-        <TabPanel className={classes.container} value={tab} name={"queueDados"}>
+        {tab === 0 && (
           <Paper>
             <Formik
               initialValues={queue}
@@ -321,8 +298,6 @@ const QueueModal = ({ open, onClose, queueId, companyId }) => {
               {({ touched, errors, isSubmitting, values }) => (
                 <Form>
                   <DialogContent dividers>
-                  <Grid spacing={2} container>
-                    <Grid xs={12} md={4} item> 
                     <Field
                       as={TextField}
                       label={i18n.t("queueModal.form.name")}
@@ -334,21 +309,6 @@ const QueueModal = ({ open, onClose, queueId, companyId }) => {
                       margin="dense"
                       className={classes.textField}
                     />
-                    </Grid>
-                    <Grid xs={12} md={4} item> 
-                    <Field
-                      as={TextField}
-                      label={i18n.t("queueModal.form.prioridade")}
-                      autoFocus
-                      name="prioridade"
-                      error={touched.prioridade&& Boolean(errors.prioridade)}
-                      helperText={touched.prioridade && errors.prioridade}
-                      variant="outlined"
-                      margin="dense"
-                      className={classes.textField}
-                    />
-                    </Grid>
-                    <Grid xs={12} md={4} item> 
                     <Field
                       as={TextField}
                       label={i18n.t("queueModal.form.color")}
@@ -393,10 +353,8 @@ const QueueModal = ({ open, onClose, queueId, companyId }) => {
                         });
                       }}
                     />
-                    </Grid>
-                    
-
-                 <Grid xs={12} md={4} item> 
+					
+					<Grid xs={12} md={4} item> 
                     
                     <FormControlLabel 
                       control={
@@ -432,71 +390,157 @@ const QueueModal = ({ open, onClose, queueId, companyId }) => {
   						<MenuItem value="60">60 minutos</MenuItem>
 				  </Field>
                   </Grid>
-                    
-                    
-                    <Grid xs={12} md={4} item> 
-                    <FormControlLabel 
-                      control={
+				  
+                    <Field
+                      as={TextField}
+                      label={i18n.t("queueModal.form.orderQueue")}
+                      name="orderQueue"
+                      type="orderQueue"
+                      error={touched.orderQueue && Boolean(errors.orderQueue)}
+                      helperText={touched.orderQueue && errors.orderQueue}
+                      variant="outlined"
+                      margin="dense"
+                      className={classes.textField1}
+                    />
+                    <div>
+                      <FormControl
+                        variant="outlined"
+                        margin="dense"
+                        className={classes.FormControl}
+                        fullWidth
+                      >
+                        <InputLabel id="integrationId-selection-label">
+                          {i18n.t("queueModal.form.integrationId")}
+                        </InputLabel>
                         <Field
-                          as={Switch}
-                          color="primary"
-                          name="isChatbot"
-                          checked={values.isChatbot}
-                        />
-                      }
-                      label={i18n.t("queueModal.form.isChatbot")}
-                    />
-                     </Grid>
-                      </Grid>
-                    
-                    <div style={{ marginTop: 5 }}>
-                          <Field
-                            as={TextField}
-                            label={i18n.t("queueModal.form.greetingMessage")}
-                            type="greetingMessage"
-                            multiline
-                            inputRef={greetingRef}
-                            rows={5}
-                            fullWidth
-                            name="greetingMessage"
-                            error={
-                              touched.greetingMessage &&
-                              Boolean(errors.greetingMessage)
-                            }
-                            helperText={
-                              touched.greetingMessage && errors.greetingMessage
-                            }
-                            variant="outlined"
-                            margin="dense"
-                          />
-                        {schedulesEnabled && (
-                            <Field
-                              as={TextField}
-                              label={i18n.t("queueModal.form.outOfHoursMessage")}
-                              type="outOfHoursMessage"
-                              multiline
-                              rows={5}
-                              fullWidth
-                              name="outOfHoursMessage"
-                              error={
-                                touched.outOfHoursMessage &&
-                                Boolean(errors.outOfHoursMessage)
-                              }
-                              helperText={
-                                touched.outOfHoursMessage && errors.outOfHoursMessage
-                              }
-                              variant="outlined"
-                              margin="dense"
-                            />
-                        )}
+                          as={Select}
+                          label={i18n.t("queueModal.form.integrationId")}
+                          name="integrationId"
+                          id="integrationId"
+                          placeholder={i18n.t("queueModal.form.integrationId")}
+                          labelId="integrationId-selection-label"
+                          value={values.integrationId || ""}
+                        >
+                          <MenuItem value={""} >{"Nenhum"}</MenuItem>
+                          {integrations.map((integration) => (
+                            <MenuItem key={integration.id} value={integration.id}>
+                              {integration.name}
+                            </MenuItem>
+                          ))}
+                        </Field>
+
+                      </FormControl>
+                      <FormControl
+                        margin="dense"
+                        variant="outlined"
+                        fullWidth
+                      >
+                        <InputLabel>
+                          {i18n.t("whatsappModal.form.prompt")}
+                        </InputLabel>
+                        <Select
+                          labelId="dialog-select-prompt-label"
+                          id="dialog-select-prompt"
+                          name="promptId"
+                          value={selectedPrompt || ""}
+                          onChange={handleChangePrompt}
+                          label={i18n.t("whatsappModal.form.prompt")}
+                          fullWidth
+                          MenuProps={{
+                            anchorOrigin: {
+                              vertical: "bottom",
+                              horizontal: "left",
+                            },
+                            transformOrigin: {
+                              vertical: "top",
+                              horizontal: "left",
+                            },
+                            getContentAnchorEl: null,
+                          }}
+                        >
+                          {prompts.map((prompt) => (
+                            <MenuItem
+                              key={prompt.id}
+                              value={prompt.id}
+                            >
+                              {prompt.name}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
                     </div>
-                    <QueueOptions 
-                      queueId={queueId} 
-                      companyId={companyId}
-                    />
+                    <div style={{ marginTop: 5 }}>
+                      <Field
+                        as={TextField}
+                        label={i18n.t("queueModal.form.greetingMessage")}
+                        type="greetingMessage"
+                        multiline
+                        inputRef={greetingRef}
+                        rows={5}
+                        fullWidth
+                        name="greetingMessage"
+                        error={
+                          touched.greetingMessage &&
+                          Boolean(errors.greetingMessage)
+                        }
+                        helperText={
+                          touched.greetingMessage && errors.greetingMessage
+                        }
+                        variant="outlined"
+                        margin="dense"
+                      />
+                      {schedulesEnabled && (
+                        <Field
+                          as={TextField}
+                          label={i18n.t("queueModal.form.outOfHoursMessage")}
+                          type="outOfHoursMessage"
+                          multiline
+                          inputRef={greetingRef}
+                          rows={5}
+                          fullWidth
+                          name="outOfHoursMessage"
+                          error={
+                            touched.outOfHoursMessage &&
+                            Boolean(errors.outOfHoursMessage)
+                          }
+                          helperText={
+                            touched.outOfHoursMessage && errors.outOfHoursMessage
+                          }
+                          variant="outlined"
+                          margin="dense"
+                        />
+                      )}
+                    </div>
+                    <QueueOptions queueId={queueId} />
+                    {(queue.mediaPath || attachment) && (
+                    <Grid xs={12} item>
+                      <Button startIcon={<AttachFile />}>
+                        {attachment != null
+                          ? attachment.name
+                          : queue.mediaName}
+                      </Button>
+                      {queueEditable && (
+                        <IconButton
+                          onClick={() => setConfirmationOpen(true)}
+                          color="secondary"
+                        >
+                          <DeleteOutline />
+                        </IconButton>
+                      )}
+                    </Grid>
+                  )}
                   </DialogContent>
- 
                   <DialogActions>
+                  {!attachment && !queue.mediaPath && queueEditable && (
+                    <Button
+                      color="primary"
+                      onClick={() => attachmentFile.current.click()}
+                      disabled={isSubmitting}
+                      variant="outlined"
+                    >
+                      {i18n.t("queueModal.buttons.attach")}
+                    </Button>
+                  )}
                     <Button
                       onClick={handleClose}
                       color="secondary"
@@ -527,8 +571,8 @@ const QueueModal = ({ open, onClose, queueId, companyId }) => {
               )}
             </Formik>
           </Paper>
-        </TabPanel>
-        <TabPanel className={classes.container} value={tab} name={"expediente"}>
+        )}
+        {tab === 1 && (
           <Paper style={{ padding: 20 }}>
             <SchedulesForm
               loading={false}
@@ -537,152 +581,7 @@ const QueueModal = ({ open, onClose, queueId, companyId }) => {
               labelSaveButton="Adicionar"
             />
           </Paper>
-        </TabPanel>
-        <TabPanel className={classes.container} value={tab} name={"integracoes"}>
-          <Paper>
-          <Formik
-            initialValues={queue}
-            enableReinitialize={true}
-            validationSchema={QueueSchema}
-            onSubmit={(values, actions) => {
-              setTimeout(() => {
-                handleSaveQueue(values);
-                actions.setSubmitting(false);
-              }, 400);
-            }}
-          >
-            {({ touched, errors, isSubmitting, values, setFieldValue  }) => (
-              <Form>
-              <DialogContent dividers>
-              <FormControl  className={classes.selectField} margin="dense" variant="outlined" >
-                      <InputLabel htmlFor="typeChatbot-selection">Tipo Chatbot</InputLabel>
-                      <Field
-                          as={Select}
-                          id="typeChatbot-selection"
-                          label="Tipo Chatbot"
-                          labelId="typeChatbot-selection-label"
-                          name="typeChatbot"
-                          margin="dense"
-                          className={classes.textField}
-                        >
-                          <MenuItem value=""></MenuItem>
-                          <MenuItem value="n8n">N8N</MenuItem>
-                          <MenuItem value="typebot">Typebot</MenuItem>
-                      </Field>
-                    </FormControl>
-                    <FormControlLabel
-                        control={
-                          <Field
-                            as={Switch}
-                            color="primary"
-                            name="resetChatbotMsg"
-                            checked={values.resetChatbotMsg}
-                          />
-                        }
-                        label={i18n.t("queueModal.form.resetChatbot")}
-                      />
-                    {values.typeChatbot === "n8n" && 
-                      <div>
-                          <FormControl  className={classes.selectField} margin="dense" variant="outlined" >
-                              <InputLabel htmlFor="workflowN8N-selection">Workspaces</InputLabel>
-                              <Field
-                                  as={Select}
-                                  id="workflowN8N-selection"
-                                  label="workFlows"
-                                  labelId="workflowN8N-selection-label"
-                                  name="n8nId"
-                                  onChange={e => { 
-                                    setFieldValue('n8n', e.target?.value)
-                                    setFieldValue('n8nId', e.target?.value)
-                                  }}
-                                  margin="dense"
-                                  className={classes.textField}
-                                >
-                                  <MenuItem value={''}>&nbsp;</MenuItem>
-                                  {workflowN8N.map((workflow, key) => (
-                                    <MenuItem key={key} value={workflow.id}>{workflow.name}</MenuItem>
-                                  ))}
-                                  
-                          </Field>
-                          </FormControl>
-                      </div> 
-                    }
-                    {values.typeChatbot === "typebot" && 
-                      <div>
-                          <FormControl  className={classes.selectField} margin="dense" variant="outlined" >
-                              <InputLabel htmlFor="workspaceTypebot-selection">Workspaces</InputLabel>
-                              <Field
-                                  as={Select}
-                                  id="workspaceTypebot-selection"
-                                  label="workSpaces"
-                                  labelId="workspaceTypebot-selection-label"
-                                  name="workspaceTypebot"
-                                  onChange={e => { 
-                                    setFieldValue('workspaceTypebot', e.target?.value)
-                                    handleChangeWorkspace(e.target?.value)
-                                  }}
-                                  margin="dense"
-                                  className={classes.textField}
-                                >
-                                  <MenuItem value={''}>&nbsp;</MenuItem>
-                                  {workspaceTypebots.map((workspace, key) => (
-                                    <MenuItem key={key} value={workspace.id}>{workspace.name}</MenuItem>
-                                  ))}
-                                  
-                          </Field>
-                          </FormControl>
-                          <FormControl  className={classes.selectField} margin="dense" variant="outlined">
-                            <InputLabel htmlFor="typebotId-selection">TypeBot</InputLabel>
-                            <Field
-                                as={Select}
-                                id="typebot-selection"
-                                label="Typebot"
-                                labelId="typebot-selection-label"
-                                name="typebotId"
-                                margin="dense"
-                                className={classes.textField}
-                              >
-                                <MenuItem value={''}>&nbsp;</MenuItem>
-                                {typeBots.map((typebot, key) => (
-                                    <MenuItem key={key} value={typebot.id}>{typebot.name}</MenuItem>
-                                  ))}
-                              </Field>
-                          </FormControl>
-                      </div> 
-                    }
-              </DialogContent>
-              <DialogActions>
-                    <Button
-                      onClick={handleClose}
-                      color="secondary"
-                      disabled={isSubmitting}
-                      variant="outlined"
-                    >
-                      {i18n.t("queueModal.buttons.cancel")}
-                    </Button>
-                    <Button
-                      type="submit"
-                      color="primary"
-                      disabled={isSubmitting}
-                      variant="contained"
-                      className={classes.btnWrapper}
-                    >
-                      {queueId
-                        ? `${i18n.t("queueModal.buttons.okEdit")}`
-                        : `${i18n.t("queueModal.buttons.okAdd")}`}
-                      {isSubmitting && (
-                        <CircularProgress
-                          size={24}
-                          className={classes.buttonProgress}
-                        />
-                      )}
-                    </Button>
-                  </DialogActions>
-              </Form>
-            )}
-          </Formik>
-          </Paper>
-        </TabPanel>
+        )}
       </Dialog>
     </div>
   );

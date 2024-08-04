@@ -26,6 +26,7 @@ import { AuthContext } from "../../context/Auth/AuthContext";
 
 import notifySound from "../../assets/chat_notify.mp3";
 import useSound from "use-sound";
+import { i18n } from "../../translate/i18n";
 
 const useStyles = makeStyles((theme) => ({
   mainPaper: {
@@ -35,10 +36,6 @@ const useStyles = makeStyles((theme) => ({
     padding: theme.spacing(1),
     overflowY: "scroll",
     ...theme.scrollbarStyles,
-  },
-  customBadge: {
-    backgroundColor: theme.palette.background.default,
-    color: theme.palette.background.default,
   },
 }));
 
@@ -142,28 +139,28 @@ export default function ChatPopover() {
 
   useEffect(() => {
     const companyId = localStorage.getItem("companyId");
-    const socket = socketManager.GetSocket(companyId);
-
-    const onCompanyChatPopover = (data) => {
+    const socket = socketManager.getSocket(companyId);
+    if (!socket) {
+      return () => {}; 
+    }
+    
+    socket.on(`company-${companyId}-chat`, (data) => {
       if (data.action === "new-message") {
         dispatch({ type: "CHANGE_CHAT", payload: data });
-        if (data.newMessage.senderId !== user.id) {
-        
+        const userIds = data.newMessage.chat.users.map(userObj => userObj.userId);
+
+        if (userIds.includes(user.id) && data.newMessage.senderId !== user.id) {
           soundAlertRef.current();
         }
       }
       if (data.action === "update") {
         dispatch({ type: "CHANGE_CHAT", payload: data });
       }
-    }
-
-    socket.on(`company-${companyId}-chat`, onCompanyChatPopover);
-
+    });
     return () => {
       socket.disconnect();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [socketManager]);
+  }, [socketManager, user.id]);
 
   useEffect(() => {
     let unreadsCount = 0;
@@ -231,9 +228,10 @@ export default function ChatPopover() {
         variant="contained"
         color={invisible ? "default" : "inherit"}
         onClick={handleClick}
+        style={{ color: "white" }}
       >
-        <Badge classes={{ badge: classes.customBadge }} variant="dot" invisible={invisible}>
-          <ForumIcon style={{ color: "white" }} />
+        <Badge color="secondary" variant="dot" invisible={invisible}>
+          <ForumIcon />
         </Badge>
       </IconButton>
       <Popover
@@ -265,6 +263,7 @@ export default function ChatPopover() {
                 <ListItem
                   key={key}
                   style={{
+                    background: key % 2 === 0 ? "#ededed" : "white",
                     border: "1px solid #eee",
                     cursor: "pointer",
                   }}
@@ -285,7 +284,7 @@ export default function ChatPopover() {
                 </ListItem>
               ))}
             {isArray(chats) && chats.length === 0 && (
-              <ListItemText primary="Nenhum registro" />
+              <ListItemText primary={i18n.t("mainDrawer.appBar.notRegister")} />
             )}
           </List>
         </Paper>

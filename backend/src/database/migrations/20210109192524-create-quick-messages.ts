@@ -23,19 +23,6 @@ module.exports = {
         onUpdate: "CASCADE",
         onDelete: "CASCADE"
       },
-      mediaPath: {
-        type: DataTypes.STRING,
-        allowNull: true
-      },
-      mediaName: {
-        type: DataTypes.STRING,
-        allowNull: true
-      },
-      geral: {
-        type: DataTypes.BOOLEAN,
-        allowNull: false,
-        defaultValue: false
-      },
       createdAt: {
         type: DataTypes.DATE,
         allowNull: false

@@ -10,9 +10,7 @@ import { toast } from "react-toastify";
 import api from "../../services/api";
 import { i18n } from "../../translate/i18n.js";
 import toastError from "../../errors/toastError";
-import { socketConnection } from "../../services/socket";
-import { AuthContext } from "../../context/Auth/AuthContext.js";
-import { SocketContext } from "../../context/Socket/SocketContext.js";
+import { SocketContext } from "../../context/Socket/SocketContext";
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -39,6 +37,7 @@ const Settings = () => {
   const classes = useStyles();
 
   const [settings, setSettings] = useState([]);
+
   const socketManager = useContext(SocketContext);
 
   useEffect(() => {
@@ -55,9 +54,9 @@ const Settings = () => {
 
   useEffect(() => {
     const companyId = localStorage.getItem("companyId");
-    const socket = socketManager.GetSocket(companyId);
+    const socket = socketManager.getSocket(companyId);
 
-    const onSettings = (data) => {
+    socket.on(`company-${companyId}-settings`, (data) => {
       if (data.action === "update") {
         setSettings((prevState) => {
           const aux = [...prevState];
@@ -66,9 +65,7 @@ const Settings = () => {
           return aux;
         });
       }
-    }
-    
-    socket.on(`company-${companyId}-settings`, onSettings);
+    });
 
     return () => {
       socket.disconnect();
@@ -96,7 +93,7 @@ const Settings = () => {
 
   return (
     <div className={classes.root}>
-      <Container className={classes.container} maxWidth="xl">
+      <Container className={classes.container} maxWidth="sm">
         <Typography variant="body2" gutterBottom>
           {i18n.t("settings.title")}
         </Typography>

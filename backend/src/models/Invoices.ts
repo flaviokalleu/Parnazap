@@ -39,12 +39,6 @@ class Invoices extends Model<Invoices> {
   @Column
   companyId: number;
 
-  @Column
-  txid: string;
-
-  @Column
-  stripe_id: string;
-
 }
 
 export default Invoices;

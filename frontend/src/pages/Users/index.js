@@ -28,8 +28,6 @@ import TableRowSkeleton from "../../components/TableRowSkeleton";
 import UserModal from "../../components/UserModal";
 import ConfirmationModal from "../../components/ConfirmationModal";
 import toastError from "../../errors/toastError";
-import { socketConnection } from "../../services/socket";
-import { AuthContext } from "../../context/Auth/AuthContext";
 import { SocketContext } from "../../context/Socket/SocketContext";
 
 const reducer = (state, action) => {
@@ -88,8 +86,6 @@ const useStyles = makeStyles((theme) => ({
 const Users = () => {
   const classes = useStyles();
 
-  const {user} = useContext(AuthContext)
-  const socketManager = useContext(SocketContext);
   const [loading, setLoading] = useState(false);
   const [pageNumber, setPageNumber] = useState(1);
   const [hasMore, setHasMore] = useState(false);
@@ -99,6 +95,8 @@ const Users = () => {
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [searchParam, setSearchParam] = useState("");
   const [users, dispatch] = useReducer(reducer, []);
+
+  const socketManager = useContext(SocketContext);
 
   useEffect(() => {
     dispatch({ type: "RESET" });
@@ -127,9 +125,9 @@ const Users = () => {
 
   useEffect(() => {
     const companyId = localStorage.getItem("companyId");
-    const socket = socketManager.GetSocket(companyId);
+    const socket = socketManager.getSocket(companyId);
 
-    const onCompanyUser = (data) => {
+    socket.on(`company-${companyId}-user`, (data) => {
       if (data.action === "update" || data.action === "create") {
         dispatch({ type: "UPDATE_USERS", payload: data.user });
       }
@@ -137,15 +135,13 @@ const Users = () => {
       if (data.action === "delete") {
         dispatch({ type: "DELETE_USER", payload: +data.userId });
       }
-    }
-
-    socket.on(`company-${companyId}-user`, onCompanyUser);
+    });
 
     return () => {
       socket.disconnect();
     };
   }, [socketManager]);
-  
+
   const handleOpenUserModal = () => {
     setSelectedUser(null);
     setUserModalOpen(true);
@@ -243,7 +239,9 @@ const Users = () => {
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell align="center">{i18n.t("users.table.id")}</TableCell>
+			<TableCell align="center">
+                {i18n.t("users.table.id")}
+              </TableCell>
               <TableCell align="center">{i18n.t("users.table.name")}</TableCell>
               <TableCell align="center">
                 {i18n.t("users.table.email")}
@@ -251,9 +249,6 @@ const Users = () => {
               <TableCell align="center">
                 {i18n.t("users.table.profile")}
               </TableCell>
-              <TableCell align="center">
-                {i18n.t("users.table.whatsapp")}
-              </TableCell> 
               <TableCell align="center">
                 {i18n.t("users.table.actions")}
               </TableCell>
@@ -263,11 +258,10 @@ const Users = () => {
             <>
               {users.map((user) => (
                 <TableRow key={user.id}>
-                  <TableCell align="center">{user.id}</TableCell>
-                  <TableCell align="center">{user.name} {user.super ? '(SUPERUSER)' : ''}</TableCell>
+				  <TableCell align="center">{user.id}</TableCell>
+                  <TableCell align="center">{user.name}</TableCell>
                   <TableCell align="center">{user.email}</TableCell>
                   <TableCell align="center">{user.profile}</TableCell>
-                  <TableCell align="center">{user.whatsapp?.name}</TableCell>
                   <TableCell align="center">
                     <IconButton
                       size="small"

@@ -7,9 +7,9 @@ import {
   IconButton,
   Paper,
   InputBase
-} from "@mui/material";
-import CloseIcon from '@mui/icons-material/Close';
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+} from "@material-ui/core";
+import CloseIcon from '@material-ui/icons/Close';
+import CheckCircleIcon from "@material-ui/icons/CheckCircle";
 import { makeStyles } from "@material-ui/core";
 import MarkdownWrapper from "../MarkdownWrapper";
 import MoodIcon from "@material-ui/icons/Mood";
@@ -52,6 +52,13 @@ const useStyles = makeStyles((theme) => ({
     paddingRight: 5,
     paddingTop: 5,
     paddingBottom: 0
+  },
+  inputmsg:{
+	  backgroundColor: theme.mode === 'light' ? '#FFF' : '#1c1c1c',
+	  display: "flex",
+      width: "100%",
+      margin: "10px 0px 10px 20px",
+      borderRadius: "10px"
   },
   timestamp: {
     fontSize: 11,
@@ -197,6 +204,7 @@ const EditMessageModal = ({ open, onClose, onSave, message }) => {
             </Box>
           </Box>
           <Paper
+		   
             component="form"
             style={{
               p: "2px 4px",
@@ -207,13 +215,7 @@ const EditMessageModal = ({ open, onClose, onSave, message }) => {
             }}
           >
             <Box
-              style={{
-                display: "flex",
-                width: "100%",
-                backgroundColor: "#ffffff",
-                margin: "10px 0px 10px 20px",
-                borderRadius: "10px"
-              }}
+			  className={`${classes.inputmsg}`}
             >
               <InputBase
                 style={{ padding: "15px 0px 15px 15px", flex: 1 }}

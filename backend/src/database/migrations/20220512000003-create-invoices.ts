@@ -34,13 +34,7 @@ module.exports = {
                 references: { model: "Companies", key: "id" },
                 onUpdate: "CASCADE",
                 onDelete: "CASCADE"
-            },
-            txid: {
-        		type: DataTypes.TEXT
-      		},
-            stripe_id: {
-        		type: DataTypes.TEXT
-      		}
+            }
         });
     },
 

@@ -8,15 +8,9 @@ import TabPanel from "../../components/TabPanel";
 
 import SchedulesForm from "../../components/SchedulesForm";
 import CompaniesManager from "../../components/CompaniesManager";
-import NewCompaniesManager from "../../pages/Companies";
-
 import PlansManager from "../../components/PlansManager";
 import HelpsManager from "../../components/HelpsManager";
 import Options from "../../components/Settings/Options";
-import Colors from "../../components/Settings/Colors";
-import Uploader from "../../components/Settings/Uploader";
-import UploaderCert from "../../components/Settings/UploaderCert";
-import UploaderDocs from "../../components/Settings/UploaderDocs";
 
 import { i18n } from "../../translate/i18n.js";
 import { toast } from "react-toastify";
@@ -38,7 +32,7 @@ const useStyles = makeStyles((theme) => ({
     flex: 1,
   },
   tab: {
-    background: "#f2feee5f3",
+    backgroundColor: theme.palette.options,
     borderRadius: 4,
   },
   paper: {
@@ -173,13 +167,8 @@ const SettingsCustom = () => {
           <Tab label="Opções" value={"options"} />
           {schedulesEnabled && <Tab label="Horários" value={"schedules"} />}
           {isSuper() ? <Tab label="Empresas" value={"companies"} /> : null}
-          {isSuper() ? <Tab label="Cadastrar Empresa" value={"newcompanie"} /> : null}
           {isSuper() ? <Tab label="Planos" value={"plans"} /> : null}
           {isSuper() ? <Tab label="Ajuda" value={"helps"} /> : null}
-          {isSuper() ? <Tab label="Cores" value={"colors"} /> : null}
-          {isSuper() ? <Tab label="Logotipos / Ícones" value={"uploader"} /> : null}
-          {isSuper() ? <Tab label="Documentos" value={"uploaderdocs"} /> : null}
-          {isSuper() ? <Tab label="Certificado Efí PIX" value={"uploadercert"} /> : null}
         </Tabs>
         <Paper className={classes.paper} elevation={0}>
           <TabPanel
@@ -211,18 +200,6 @@ const SettingsCustom = () => {
               <TabPanel
                 className={classes.container}
                 value={tab}
-                name={"newcompanie"}
-              >
-                <NewCompaniesManager />
-              </TabPanel>
-            )}
-          />
-          <OnlyForSuperUser
-            user={currentUser}
-            yes={() => (
-              <TabPanel
-                className={classes.container}
-                value={tab}
                 name={"plans"}
               >
                 <PlansManager />
@@ -238,59 +215,6 @@ const SettingsCustom = () => {
                 name={"helps"}
               >
                 <HelpsManager />
-              </TabPanel>
-            )}
-          />
-		  <OnlyForSuperUser
-            user={currentUser}
-            yes={() => (
-        
-		  <TabPanel className={classes.container} value={tab} name={"colors"}>
-            <Colors
-              settings={settings}
-              scheduleTypeChanged={(value) =>
-                setSchedulesEnabled(value === "company")
-              }
-            />
-          </TabPanel>
-
-
-
-            )}
-          />
-          <OnlyForSuperUser
-            user={currentUser}
-            yes={() => (
-              <TabPanel
-                className={classes.container}
-                value={tab}
-                name={"uploader"}
-              >
-                <Uploader />
-              </TabPanel>
-            )}
-          />
-		  <OnlyForSuperUser
-            user={currentUser}
-            yes={() => (
-              <TabPanel
-                className={classes.container}
-                value={tab}
-                name={"uploaderdocs"}
-              >
-                <UploaderDocs />
-              </TabPanel>
-            )}
-          />
-		  <OnlyForSuperUser
-            user={currentUser}
-            yes={() => (
-              <TabPanel
-                className={classes.container}
-                value={tab}
-                name={"uploadercert"}
-              >
-                <UploaderCert />
               </TabPanel>
             )}
           />

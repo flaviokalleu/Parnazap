@@ -34,41 +34,32 @@ class Plan extends Model<Plan> {
   @Column
   value: number;
 
-  @Column
-  useWhatsapp: boolean;   
-
-  @Column
-  useFacebook: boolean;   
-
-  @Column
-  useInstagram: boolean;   
-  
-  @Column
-  useCampaigns: boolean;   
-
-  @Column
-  useSchedules: boolean;   
-
-  @Column
-  useInternalChat: boolean;   
-  
-  @Column
-  useExternalApi: boolean; 
-
-  @Column
-  useKanban: boolean; 
-
-  @Column
-  useInternal: boolean; 
-
-  @Column
-  useVisualCommunication: boolean; // Nova coluna adicionada
-
   @CreatedAt
   createdAt: Date;
 
   @UpdatedAt
   updatedAt: Date;
+
+  @Column
+  useSchedules: boolean;   
+
+  @Column
+  useCampaigns: boolean; 
+  
+  @Column
+  useInternalChat: boolean;   
+  
+  @Column
+  useExternalApi: boolean;   
+
+  @Column
+  useKanban: boolean;
+
+  @Column
+  useOpenAi: boolean;
+
+  @Column
+  useIntegrations: boolean;
 }
 
 export default Plan;

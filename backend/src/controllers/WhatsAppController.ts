@@ -1,8 +1,7 @@
 import { Request, Response } from "express";
 import { getIO } from "../libs/socket";
-import { removeWbot, restartWbot } from "../libs/wbot";
+import { removeWbot } from "../libs/wbot";
 import { StartWhatsAppSession } from "../services/WbotServices/StartWhatsAppSession";
-import AppError from "../errors/AppError";
 
 import CreateWhatsAppService from "../services/WhatsappService/CreateWhatsAppService";
 import DeleteWhatsAppService from "../services/WhatsappService/DeleteWhatsAppService";
@@ -18,15 +17,18 @@ interface WhatsappData {
   complationMessage?: string;
   outOfHoursMessage?: string;
   ratingMessage?: string;
-  closeMessage?: string;
   status?: string;
   isDefault?: boolean;
   token?: string;
-  webhook?: string;
-  ignoreNumbers?: string;
-  selectedMoveQueueId?: number;
-  selectedInterval?: number;
-  inatividade?: number;
+  //sendIdQueue?: number;
+  //timeSendQueue?: number;
+  transferQueueId?: number;
+  timeToTransfer?: number;  
+  promptId?: number;
+  maxUseBotQueues?: number;
+  timeUseBotQueues?: number;
+  expiresTicket?: number;
+  expiresInactiveMessage?: string;
 }
 
 interface QueryParams {
@@ -49,14 +51,17 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     greetingMessage,
     complationMessage,
     outOfHoursMessage,
-    closeMessage,
     queueIds,
     token,
-    webhook,
-    ignoreNumbers,
-    selectedMoveQueueId,
-    selectedInterval,
-    inatividade
+    //timeSendQueue,
+    //sendIdQueue,
+	transferQueueId,
+	timeToTransfer,
+    promptId,
+    maxUseBotQueues,
+    timeUseBotQueues,
+    expiresTicket,
+    expiresInactiveMessage
   }: WhatsappData = req.body;
   const { companyId } = req.user;
 
@@ -67,27 +72,30 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     greetingMessage,
     complationMessage,
     outOfHoursMessage,
-    closeMessage,
     queueIds,
     companyId,
     token,
-    webhook,
-    ignoreNumbers,
-    selectedMoveQueueId,
-  	selectedInterval,
-    inatividade
+    //timeSendQueue,
+    //sendIdQueue,
+	transferQueueId,
+	timeToTransfer,	
+    promptId,
+    maxUseBotQueues,
+    timeUseBotQueues,
+    expiresTicket,
+    expiresInactiveMessage
   });
 
   StartWhatsAppSession(whatsapp, companyId);
 
   const io = getIO();
- io.emit(`company-${companyId}-whatsapp`, {
+  io.to(`company-${companyId}-mainchannel`).emit(`company-${companyId}-whatsapp`, {
     action: "update",
     whatsapp
   });
 
   if (oldDefaultWhatsapp) {
-   io.emit(`company-${companyId}-whatsapp`, {
+    io.to(`company-${companyId}-mainchannel`).emit(`company-${companyId}-whatsapp`, {
       action: "update",
       whatsapp: oldDefaultWhatsapp
     });
@@ -121,13 +129,13 @@ export const update = async (
   });
 
   const io = getIO();
- io.emit(`company-${companyId}-whatsapp`, {
+  io.to(`company-${companyId}-mainchannel`).emit(`company-${companyId}-whatsapp`, {
     action: "update",
     whatsapp
   });
 
   if (oldDefaultWhatsapp) {
-   io.emit(`company-${companyId}-whatsapp`, {
+    io.to(`company-${companyId}-mainchannel`).emit(`company-${companyId}-whatsapp`, {
       action: "update",
       whatsapp: oldDefaultWhatsapp
     });
@@ -149,25 +157,10 @@ export const remove = async (
   removeWbot(+whatsappId);
 
   const io = getIO();
- io.emit(`company-${companyId}-whatsapp`, {
+  io.to(`company-${companyId}-mainchannel`).emit(`company-${companyId}-whatsapp`, {
     action: "delete",
     whatsappId: +whatsappId
   });
 
   return res.status(200).json({ message: "Whatsapp deleted." });
-};
-
-export const restart = async (
-  req: Request,
-  res: Response
-): Promise<Response> => {
-  const { companyId, profile } = req.user;
-
-  if (profile !== "admin") {
-    throw new AppError("ERR_NO_PERMISSION", 403);
-  }
-
-  await restartWbot(companyId);
-
-  return res.status(200).json({ message: "Whatsapp restart." });
 };

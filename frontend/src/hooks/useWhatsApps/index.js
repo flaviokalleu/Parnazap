@@ -2,8 +2,6 @@ import { useState, useEffect, useReducer, useContext } from "react";
 import toastError from "../../errors/toastError";
 
 import api from "../../services/api";
-import { socketConnection } from "../../services/socket";
-import { AuthContext } from "../../context/Auth/AuthContext";
 import { SocketContext } from "../../context/Socket/SocketContext";
 
 const reducer = (state, action) => {
@@ -58,6 +56,7 @@ const reducer = (state, action) => {
 const useWhatsApps = () => {
   const [whatsApps, dispatch] = useReducer(reducer, []);
   const [loading, setLoading] = useState(true);
+
   const socketManager = useContext(SocketContext);
 
   useEffect(() => {
@@ -77,26 +76,25 @@ const useWhatsApps = () => {
 
   useEffect(() => {
     const companyId = localStorage.getItem("companyId");
-    const socket = socketManager.GetSocket(companyId);
+    const socket = socketManager.getSocket(companyId);
 
+    socket.on(`company-${companyId}-whatsapp`, (data) => {
+      if (data.action === "update") {
+        dispatch({ type: "UPDATE_WHATSAPPS", payload: data.whatsapp });
+      }
+    });
 
-      socket.on(`company-${companyId}-whatsapp`, (data) => {
-        if (data.action === "update") {
-          dispatch({ type: "UPDATE_WHATSAPPS", payload: data.whatsapp });
-        }
-      });
-  
-      socket.on(`company-${companyId}-whatsapp`, (data) => {
-        if (data.action === "delete") {
-          dispatch({ type: "DELETE_WHATSAPPS", payload: data.whatsappId });
-        }
-      });
-  
-      socket.on(`company-${companyId}-whatsappSession`, (data) => {
-        if (data.action === "update") {
-          dispatch({ type: "UPDATE_SESSION", payload: data.session });
-        }
-      })
+    socket.on(`company-${companyId}-whatsapp`, (data) => {
+      if (data.action === "delete") {
+        dispatch({ type: "DELETE_WHATSAPPS", payload: data.whatsappId });
+      }
+    });
+
+    socket.on(`company-${companyId}-whatsappSession`, (data) => {
+      if (data.action === "update") {
+        dispatch({ type: "UPDATE_SESSION", payload: data.session });
+      }
+    });
 
     return () => {
       socket.disconnect();

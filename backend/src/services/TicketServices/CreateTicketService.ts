@@ -5,6 +5,7 @@ import Ticket from "../../models/Ticket";
 import ShowContactService from "../ContactServices/ShowContactService";
 import { getIO } from "../../libs/socket";
 import GetDefaultWhatsAppByUser from "../../helpers/GetDefaultWhatsAppByUser";
+import ShowWhatsAppService from "../WhatsappService/ShowWhatsAppService";
 
 interface Request {
   contactId: number;
@@ -12,7 +13,7 @@ interface Request {
   userId: number;
   companyId: number;
   queueId?: number;
-  whatsappId?: number;
+  whatsappId?: string;
 }
 
 const CreateTicketService = async ({
@@ -20,42 +21,37 @@ const CreateTicketService = async ({
   status,
   userId,
   queueId,
-  whatsappId,
-  companyId
+  companyId,
+  whatsappId
 }: Request): Promise<Ticket> => {
+  let whatsapp;
 
-  let defaultWhatsapp = await GetDefaultWhatsAppByUser(userId);
-  let useThisWhats = null;
-
-  if(!whatsappId){
-
-  	if (!defaultWhatsapp){
-    	defaultWhatsapp = await GetDefaultWhatsApp(companyId);
-        useThisWhats = defaultWhatsapp.id;
-  	}else{
-    	defaultWhatsapp = await GetDefaultWhatsApp(companyId);
-        useThisWhats = defaultWhatsapp.id;
-    }
-  
-  }else{
-  
-  	useThisWhats = whatsappId;
+  if (whatsappId !== undefined && whatsappId !== null && whatsappId !==  "") {
+    whatsapp = await ShowWhatsAppService(whatsappId, companyId)
   }
-
-  await CheckContactOpenTickets(contactId, useThisWhats);
   
+  let defaultWhatsapp = await GetDefaultWhatsAppByUser(userId);
+
+  if (whatsapp) {
+    defaultWhatsapp = whatsapp;
+  }
+  if (!defaultWhatsapp)
+    defaultWhatsapp = await GetDefaultWhatsApp(companyId);
+
+  await CheckContactOpenTickets(contactId, whatsappId);
+
   const { isGroup } = await ShowContactService(contactId, companyId);
 
   const [{ id }] = await Ticket.findOrCreate({
     where: {
       contactId,
       companyId,
-      whatsappId: useThisWhats
+      whatsappId
     },
     defaults: {
       contactId,
       companyId,
-      whatsappId: useThisWhats,
+      whatsappId: defaultWhatsapp.id,
       status,
       isGroup,
       userId
@@ -63,7 +59,7 @@ const CreateTicketService = async ({
   });
 
   await Ticket.update(
-    { companyId, queueId, userId, whatsappId: useThisWhats, status: "open" },
+    { companyId, queueId, userId, whatsappId: defaultWhatsapp.id, status: "open" },
     { where: { id } }
   );
 
@@ -79,7 +75,7 @@ const CreateTicketService = async ({
     action: "update",
     ticket
   });
-  
+
   return ticket;
 };
 

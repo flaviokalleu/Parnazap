@@ -25,8 +25,6 @@ import toastError from "../../errors/toastError";
 import QueueSelectCustom from "../QueueSelectCustom";
 import { AuthContext } from "../../context/Auth/AuthContext";
 import { Can } from "../Can";
-import OnlyForSuperUser from "../../components/OnlyForSuperUser";
-
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -207,10 +205,8 @@ const ModalUsers = ({ open, onClose, userId, companyId }) => {
                             id="profile-selection"
                             required
                           >
-                            <MenuItem value="supervisor">Supervisor</MenuItem>
                             <MenuItem value="admin">Admin</MenuItem>
                             <MenuItem value="user">User</MenuItem>
-                            
                           </Field>
                         </>
                       )}

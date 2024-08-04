@@ -11,7 +11,6 @@ import {
   AllowNull
 } from "sequelize-typescript";
 import Queue from "./Queue";
-import UserQueue from "./UserQueue";
 
 @Table
 class QueueOption extends Model<QueueOption> {
@@ -39,17 +38,6 @@ class QueueOption extends Model<QueueOption> {
   @Column
   parentId: number;
 
-  @Column
-  queueType: string;
-
-  @ForeignKey(() => Queue)
-  @Column
-  queueOptionsId: number;
-
-  @ForeignKey(() => UserQueue)
-  @Column
-  queueUsersId: number;
-
   @CreatedAt
   createdAt: Date;
 
@@ -61,6 +49,12 @@ class QueueOption extends Model<QueueOption> {
 
   @BelongsTo(() => QueueOption, { foreignKey: 'parentId' })
   parent: QueueOption;
+  
+  @Column
+  mediaPath: string;
+
+  @Column
+  mediaName: string;
 }
 
 export default QueueOption;

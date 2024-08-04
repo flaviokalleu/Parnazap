@@ -8,7 +8,7 @@ export type MessageData = {
   number: number | string;
   body: string;
   mediaPath?: string;
-  companyId?: number;
+  fileName?: string;
 };
 
 export const SendMessage = async (
@@ -18,15 +18,14 @@ export const SendMessage = async (
   try {
     const wbot = await GetWhatsappWbot(whatsapp);
     const chatId = `${messageData.number}@s.whatsapp.net`;
-    const companyId = messageData.companyId.toString();
-  
+
     let message;
 
     if (messageData.mediaPath) {
       const options = await getMessageOptions(
-        messageData.body,
+        messageData.fileName,
         messageData.mediaPath,
-        companyId
+        messageData.body
       );
       if (options) {
         const body = fs.readFileSync(messageData.mediaPath);
@@ -35,7 +34,7 @@ export const SendMessage = async (
         });
       }
     } else {
-      const body = `\u200e${messageData.body}`;
+      const body = `\u200e ${messageData.body}`;
       message = await wbot.sendMessage(chatId, { text: body });
     }
 

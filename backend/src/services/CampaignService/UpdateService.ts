@@ -21,7 +21,7 @@ interface Data {
   confirmationMessage3?: string;
   confirmationMessage4?: string;
   confirmationMessage5?: string;
-  whatsappId?: string;
+  fileListId: number;
 }
 
 const UpdateService = async (data: Data): Promise<Campaign> => {
@@ -53,7 +53,7 @@ const UpdateService = async (data: Data): Promise<Campaign> => {
   await record.reload({
     include: [
       { model: ContactList },
-      //{ model: Whatsapp, attributes: ["id", "name"] }
+      { model: Whatsapp, attributes: ["id", "name"] }
     ]
   });
 

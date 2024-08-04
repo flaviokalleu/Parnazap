@@ -1,9 +1,9 @@
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useContext } from "react";
 import { useParams } from "react-router-dom";
-import { useHistory } from "react-router-dom";
+
 import { makeStyles } from "@material-ui/core/styles";
 import Paper from "@material-ui/core/Paper";
-import { toast } from "react-toastify";
+
 import MainContainer from "../../components/MainContainer";
 import MainHeader from "../../components/MainHeader";
 import Title from "../../components/Title";
@@ -21,10 +21,8 @@ import CheckCircleIcon from "@material-ui/icons/CheckCircle";
 import WhatsAppIcon from "@material-ui/icons/WhatsApp";
 import ListAltIcon from "@material-ui/icons/ListAlt";
 import { useDate } from "../../hooks/useDate";
-import usePlans from "../../hooks/usePlans";
 
 import { SocketContext } from "../../context/Socket/SocketContext";
-import { AuthContext } from "../../context/Auth/AuthContext";
 
 const useStyles = makeStyles((theme) => ({
   mainPaper: {
@@ -45,7 +43,7 @@ const CampaignReport = () => {
   const classes = useStyles();
 
   const { campaignId } = useParams();
-  const history = useHistory();
+
   const [campaign, setCampaign] = useState({});
   const [validContacts, setValidContacts] = useState(0);
   const [delivered, setDelivered] = useState(0);
@@ -53,27 +51,11 @@ const CampaignReport = () => {
   const [confirmed, setConfirmed] = useState(0);
   const [percent, setPercent] = useState(0);
   const [loading, setLoading] = useState(false);
-  const socketManager = useContext(SocketContext);
-
   const mounted = useRef(true);
 
   const { datetimeToClient } = useDate();
-  const { getPlanCompany } = usePlans();
 
-  useEffect(() => {
-    async function fetchData() {
-      const companyId = localStorage.getItem("companyId");
-      const planConfigs = await getPlanCompany(undefined, companyId);
-      if (!planConfigs.plan.useCampaigns) {
-        toast.error("Você não possui acesso a este recurso! Faça um upgrade em sua assinatura ou contate o suporte!");
-        setTimeout(() => {          
-          history.push(`/`)
-        }, 500);
-      }
-    }
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const socketManager = useContext(SocketContext);
 
   useEffect(() => {
     if (mounted.current) {
@@ -117,10 +99,10 @@ const CampaignReport = () => {
 
   useEffect(() => {
     const companyId = localStorage.getItem("companyId");
-    const socket = socketManager.GetSocket(companyId);
+    const socket = socketManager.getSocket(companyId);
 
-    const onCampaign = (data) => {
-  
+    socket.on(`company-${companyId}-campaign`, (data) => {
+     
       if (data.record.id === +campaignId) {
         setCampaign(data.record);
 
@@ -130,10 +112,8 @@ const CampaignReport = () => {
           }, 5000);
         }
       }
-    }
+    });
 
-    socket.on(`company-${companyId}-campaign`, onCampaign);
-    
     return () => {
       socket.disconnect();
     };
@@ -226,7 +206,7 @@ const CampaignReport = () => {
               <CardCounter
                 icon={<WhatsAppIcon fontSize="inherit" />}
                 title="Conexão"
-                value={campaign.whatsappName}
+                value={campaign.whatsapp.name}
                 loading={loading}
               />
             </Grid>

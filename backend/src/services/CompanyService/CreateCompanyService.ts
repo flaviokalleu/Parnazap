@@ -1,15 +1,12 @@
 import * as Yup from "yup";
 import AppError from "../../errors/AppError";
 import Company from "../../models/Company";
-import User from "../../models/User";
 import Setting from "../../models/Setting";
+import User from "../../models/User";
 
 interface CompanyData {
   name: string;
   phone?: string;
-  namecomplete?: string;
-  pais?: string;
-  indicator?: string;
   email?: string;
   password?: string;
   status?: boolean;
@@ -25,9 +22,6 @@ const CreateCompanyService = async (
   const {
     name,
     phone,
-    namecomplete,
-    pais,
-    indicator,
     email,
     status,
     planId,
@@ -37,7 +31,6 @@ const CreateCompanyService = async (
     recurrence
   } = companyData;
 
-/*
   const companySchema = Yup.object().shape({
     name: Yup.string()
       .min(2, "ERR_COMPANY_INVALID_NAME")
@@ -57,48 +50,9 @@ const CreateCompanyService = async (
         }
       )
   });
-  
-*/
-
-const companySchema = Yup.object().shape({
-  name: Yup.string()
-    .min(2, "ERR_COMPANY_INVALID_NAME")
-    .required("ERR_COMPANY_INVALID_NAME")
-    .test(
-      "Check-unique-name",
-      "Empresa Já Cadastrada!",
-      async value => {
-        if (value) {
-          const companyWithSameName = await Company.findOne({
-            where: { name: value }
-          });
-
-          return !companyWithSameName;
-        }
-        return false;
-      }
-    ),
-  email: Yup.string()
-    .email("ERR_COMPANY_INVALID_EMAIL")
-    .required("ERR_COMPANY_INVALID_EMAIL")
-    .test(
-      "Check-unique-email",
-      "E-Mail Já Cadastrado!",
-      async value => {
-        if (value) {
-          const companyWithSameEmail = await Company.findOne({
-            where: { email: value }
-          });
-
-          return !companyWithSameEmail;
-        }
-        return false;
-      }
-    )
-});
 
   try {
-    await companySchema.validate({ name, email });
+    await companySchema.validate({ name });
   } catch (err: any) {
     throw new AppError(err.message);
   }
@@ -106,9 +60,6 @@ const companySchema = Yup.object().shape({
   const company = await Company.create({
     name,
     phone,
-    namecomplete,
-    pais,
-    indicator,
     email,
     status,
     planId,
@@ -117,9 +68,9 @@ const companySchema = Yup.object().shape({
   });
 
   const user = await User.create({
-    name: company.namecomplete,
+    name: company.name,
     email: company.email,
-    password: companyData.password,
+    password: password || "mudar123",
     profile: "admin",
     companyId: company.id
   });
@@ -240,6 +191,33 @@ const companySchema = Yup.object().shape({
     },
   });
 
+
+ // Enviar mensagem ao aceitar ticket
+    await Setting.findOrCreate({
+	where:{
+      companyId: company.id,
+      key: "sendGreetingAccepted",
+    },
+    defaults: {
+      companyId: company.id,
+      key: "sendGreetingAccepted",
+      value: "disabled"
+    },
+  });
+  
+ // Enviar mensagem de transferencia
+    await Setting.findOrCreate({
+	where:{
+      companyId: company.id,
+      key: "sendMsgTransfTicket",
+    },
+    defaults: {
+      companyId: company.id,
+      key: "sendMsgTransfTicket",
+      value: "disabled"
+    },
+ });
+
   //userRating
   await Setting.findOrCreate({
     where: {
@@ -253,7 +231,7 @@ const companySchema = Yup.object().shape({
     },
   });
 
-  //chatBotType
+  //userRating
   await Setting.findOrCreate({
     where: {
       companyId: company.id,
@@ -264,148 +242,42 @@ const companySchema = Yup.object().shape({
       key: "chatBotType",
       value: "text"
     },
+
   });
 
-  //moveQueue
   await Setting.findOrCreate({
     where: {
       companyId: company.id,
-      key: "moveQueue"
+      key: "tokensgp"
     },
     defaults: {
       companyId: company.id,
-      key: "moveQueue",
-      value: "disabled"
+      key: "tokensgp",
+      value: ""
     },
   });
 
-  //idfila
   await Setting.findOrCreate({
     where: {
       companyId: company.id,
-      key: "idfila"
+      key: "ipsgp"
     },
     defaults: {
       companyId: company.id,
-      key: "idfila",
-      value: "0"
+      key: "ipsgp",
+      value: ""
     },
   });
 
-  //tempofila
   await Setting.findOrCreate({
     where: {
       companyId: company.id,
-      key: "tempofila"
+      key: "appsgp"
     },
     defaults: {
       companyId: company.id,
-      key: "tempofila",
-      value: "10"
-    },
-  });
-
-  //sendGreetingAccepted
-  await Setting.findOrCreate({
-    where: {
-      companyId: company.id,
-      key: "sendGreetingAccepted"
-    },
-    defaults: {
-      companyId: company.id,
-      key: "sendGreetingAccepted",
-      value: "enabled"
-    },
-  });
-
-  //outsidemessage
-  await Setting.findOrCreate({
-    where: {
-      companyId: company.id,
-      key: "outsidemessage"
-    },
-    defaults: {
-      companyId: company.id,
-      key: "outsidemessage",
-      value: "enabled"
-    },
-  });
-
-  //outsidequeue
-  await Setting.findOrCreate({
-    where: {
-      companyId: company.id,
-      key: "outsidequeue"
-    },
-    defaults: {
-      companyId: company.id,
-      key: "outsidequeue",
-      value: "disabled"
-    },
-  });
-
-  //sendTransferAlert
-  await Setting.findOrCreate({
-    where: {
-      companyId: company.id,
-      key: "sendTransferAlert"
-    },
-    defaults: {
-      companyId: company.id,
-      key: "sendTransferAlert",
-      value: "enabled"
-    },
-  });
-
-  //mainColor
-  await Setting.findOrCreate({
-    where: {
-      companyId: company.id,
-      key: "mainColor"
-    },
-    defaults: {
-      companyId: company.id,
-      key: "mainColor",
-      value: "#4a90e2"
-    },
-  });
-
-  //scrollbarColor
-  await Setting.findOrCreate({
-    where: {
-      companyId: company.id,
-      key: "scrollbarColor"
-    },
-    defaults: {
-      companyId: company.id,
-      key: "scrollbarColor",
-      value: "#4a90e2"
-    },
-  });
-
-  //toolbarBackground
-  await Setting.findOrCreate({
-    where: {
-      companyId: company.id,
-      key: "toolbarBackground"
-    },
-    defaults: {
-      companyId: company.id,
-      key: "toolbarBackground",
-      value: "#4a90e2"
-    },
-  });
-
-  //backgroundPages
-  await Setting.findOrCreate({
-    where: {
-      companyId: company.id,
-      key: "backgroundPages"
-    },
-    defaults: {
-      companyId: company.id,
-      key: "backgroundPages",
-      value: "linear-gradient(to right, #3c6afb , #3c6afb , #C5AEF2)"
+      key: "appsgp",
+      value: ""
     },
   });
 
@@ -418,12 +290,12 @@ const companySchema = Yup.object().shape({
       defaults: {
         companyId: company.id,
         key: "campaignsEnabled",
-        value: "false"
+        value: `${campaignsEnabled}`
       },
 
     });
     if (!created) {
-      await setting.update({ value: "false" });
+      await setting.update({ value: `${campaignsEnabled}` });
     }
   }
 

@@ -57,14 +57,14 @@ function ContactListsTable(props) {
               </IconButton>
 
               <IconButton size="small" onClick={() => handleEdit(contactList)}>
-                <EditIcon color="secondary" />
+                <EditIcon />
               </IconButton>
 
               <IconButton
                 size="small"
                 onClick={() => handleDelete(contactList)}
               >
-                <DeleteOutlineIcon color="secondary" />
+                <DeleteOutlineIcon />
               </IconButton>
             </TableCell>
           ) : null}

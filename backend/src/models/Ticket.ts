@@ -11,7 +11,8 @@ import {
   AutoIncrement,
   Default,
   BeforeCreate,
-  BelongsToMany
+  BelongsToMany,
+  AllowNull
 } from "sequelize-typescript";
 import { v4 as uuidv4 } from "uuid";
 
@@ -24,6 +25,8 @@ import Company from "./Company";
 import QueueOption from "./QueueOption";
 import Tag from "./Tag";
 import TicketTag from "./TicketTag";
+import QueueIntegrations from "./QueueIntegrations";
+import Prompt from "./Prompt";
 
 @Table
 class Ticket extends Model<Ticket> {
@@ -81,10 +84,6 @@ class Ticket extends Model<Ticket> {
 
   @Column
   chatbot: boolean;
-  
-  @Default("whatsapp")
-  @Column
-  channel: string;
 
   @ForeignKey(() => QueueOption)
   @Column
@@ -118,15 +117,38 @@ class Ticket extends Model<Ticket> {
     ticket.uuid = uuidv4();
   }
   
+  @Default(false)
   @Column
-  sessiontypebot: string;
+  useIntegration: boolean;
+
+  @ForeignKey(() => QueueIntegrations)
+  @Column
+  integrationId: number;
+
+  @BelongsTo(() => QueueIntegrations)
+  queueIntegration: QueueIntegrations;
 
   @Column
-  startChatTime: Date;
-  
-  @Column
-  oportunidadeId: number;
+  typebotSessionId: string;
 
+  @Default(false)
+  @Column
+  typebotStatus: boolean
+
+  @ForeignKey(() => Prompt)
+  @Column
+  promptId: number;
+
+  @BelongsTo(() => Prompt)
+  prompt: Prompt;
+
+  @Column
+  fromMe: boolean;
+
+  @AllowNull(false)
+  @Default(0)
+  @Column
+  amountUsedBotQueues: number;
 }
 
 export default Ticket;

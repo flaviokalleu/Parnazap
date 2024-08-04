@@ -23,7 +23,7 @@ module.exports = {
           "Companies",
           [
             {
-              name: "Full Time Chat",
+              name: "Empresa 1",
               planId: 1,
               dueDate: "2093-03-14 04:00:00+01",
               createdAt: new Date(),

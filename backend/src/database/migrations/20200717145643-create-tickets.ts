@@ -17,11 +17,6 @@ module.exports = {
       lastMessage: {
         type: DataTypes.STRING
       },
-      channel: {
-        type: DataTypes.TEXT,
-        defaultValue: "whatsapp",
-        allowNull: true
-      },
       contactId: {
         type: DataTypes.INTEGER,
         references: { model: "Contacts", key: "id" },

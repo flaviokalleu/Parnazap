@@ -1,16 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { useHistory } from "react-router-dom";
 
 import { makeStyles } from "@material-ui/core/styles";
 import Paper from "@material-ui/core/Paper";
+import { toast } from "react-toastify";
+
 import MainContainer from "../../components/MainContainer";
 import MainHeader from "../../components/MainHeader";
 import Title from "../../components/Title";
 import DeleteOutlineIcon from "@material-ui/icons/DeleteOutline";
 import api from "../../services/api";
-import { toast } from "react-toastify";
-import usePlans from "../../hooks/usePlans";
-
 
 import { i18n } from "../../translate/i18n";
 import {
@@ -48,37 +46,20 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 const initialSettings = {
-  messageInterval: 240,
-  longerIntervalAfter: 4,
-  greaterInterval: 600,
+  messageInterval: 20,
+  longerIntervalAfter: 20,
+  greaterInterval: 60,
   variables: [],
 };
 
 const CampaignsConfig = () => {
   const classes = useStyles();
-  const history = useHistory();
+
   const [settings, setSettings] = useState(initialSettings);
   const [showVariablesForm, setShowVariablesForm] = useState(false);
   const [confirmationOpen, setConfirmationOpen] = useState(false);
   const [selectedKey, setSelectedKey] = useState(null);
   const [variable, setVariable] = useState({ key: "", value: "" });
-
-  const { getPlanCompany } = usePlans();
-
-  useEffect(() => {
-    async function fetchData() {
-      const companyId = localStorage.getItem("companyId");
-      const planConfigs = await getPlanCompany(undefined, companyId);
-      if (!planConfigs.plan.useCampaigns) {
-        toast.error("Você não possui acesso a este recurso! Faça um upgrade em sua assinatura ou contate o suporte!");
-        setTimeout(() => {          
-          history.push(`/`)
-        }, 1000);
-      }
-    }
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   useEffect(() => {
     api.get("/campaign-settings").then(({ data }) => {
@@ -171,9 +152,11 @@ const CampaignsConfig = () => {
                   value={settings.messageInterval}
                   onChange={(e) => handleOnChangeSettings(e)}
                 >
-                  <MenuItem value={60}>60 segundos</MenuItem>
-                  <MenuItem value={120}>120 segundos</MenuItem>
-                  <MenuItem value={240}>240 segundos</MenuItem>
+                  <MenuItem value={0}>Sem Intervalo</MenuItem>
+                  <MenuItem value={5}>5 segundos</MenuItem>
+                  <MenuItem value={10}>10 segundos</MenuItem>
+                  <MenuItem value={15}>15 segundos</MenuItem>
+                  <MenuItem value={20}>20 segundos</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -194,10 +177,18 @@ const CampaignsConfig = () => {
                   value={settings.longerIntervalAfter}
                   onChange={(e) => handleOnChangeSettings(e)}
                 >
-                  <MenuItem value={1}>1 mensagens</MenuItem>
-                  <MenuItem value={2}>2 mensagens</MenuItem>
-                  <MenuItem value={3}>3 mensagens</MenuItem>
-                  <MenuItem value={4}>4 mensagens</MenuItem>
+                  <MenuItem value={0}>Não definido</MenuItem>
+                  <MenuItem value={1}>1 segundo</MenuItem>
+                  <MenuItem value={5}>5 segundos</MenuItem>
+                  <MenuItem value={10}>10 segundos</MenuItem>
+                  <MenuItem value={15}>15 segundos</MenuItem>
+                  <MenuItem value={20}>20 segundos</MenuItem>
+                  <MenuItem value={30}>30 segundos</MenuItem>
+                  <MenuItem value={40}>40 segundos</MenuItem>
+                  <MenuItem value={60}>60 segundos</MenuItem>
+                  <MenuItem value={80}>80 segundos</MenuItem>
+                  <MenuItem value={100}>100 segundos</MenuItem>
+                  <MenuItem value={120}>120 segundos</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -218,11 +209,18 @@ const CampaignsConfig = () => {
                   value={settings.greaterInterval}
                   onChange={(e) => handleOnChangeSettings(e)}
                 >
-                  <MenuItem value={200}>200 segundos</MenuItem>
-                  <MenuItem value={300}>300 segundos</MenuItem>
-                  <MenuItem value={400}>400 segundos</MenuItem>
-                  <MenuItem value={500}>500 segundos</MenuItem>
-                  <MenuItem value={600}>600 segundos</MenuItem>
+                  <MenuItem value={0}>Sem Intervalo</MenuItem>
+                  <MenuItem value={1}>1 segundo</MenuItem>
+                  <MenuItem value={5}>5 segundos</MenuItem>
+                  <MenuItem value={10}>10 segundos</MenuItem>
+                  <MenuItem value={15}>15 segundos</MenuItem>
+                  <MenuItem value={20}>20 segundos</MenuItem>
+                  <MenuItem value={30}>30 segundos</MenuItem>
+                  <MenuItem value={40}>40 segundos</MenuItem>
+                  <MenuItem value={60}>60 segundos</MenuItem>
+                  <MenuItem value={80}>80 segundos</MenuItem>
+                  <MenuItem value={100}>100 segundos</MenuItem>
+                  <MenuItem value={120}>120 segundos</MenuItem>
                 </Select>
               </FormControl>
             </Grid>

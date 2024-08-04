@@ -1,5 +1,4 @@
 import * as Yup from "yup";
-import { logger } from "../../utils/logger";
 
 import AppError from "../../errors/AppError";
 import Whatsapp from "../../models/Whatsapp";
@@ -15,16 +14,19 @@ interface Request {
   complationMessage?: string;
   outOfHoursMessage?: string;
   ratingMessage?: string;
-  closeMessage?: string;
   status?: string;
   isDefault?: boolean;
   token?: string;
-  webhook?: string;
-  ignoreNumbers?: string;
-  provider?: string;  
-  selectedMoveQueueId?: number;
-  selectedInterval?: number;
-  inatividade?: number;
+  provider?: string;
+  //sendIdQueue?: number;
+  //timeSendQueue?: number;
+  transferQueueId?: number;
+  timeToTransfer?: number;    
+  promptId?: number;
+  maxUseBotQueues?: number;
+  timeUseBotQueues?: number;
+  expiresTicket?: number;
+  expiresInactiveMessage?: string;
 }
 
 interface Response {
@@ -40,16 +42,19 @@ const CreateWhatsAppService = async ({
   complationMessage,
   outOfHoursMessage,
   ratingMessage,
-  closeMessage,
   isDefault = false,
   companyId,
   token = "",
-  webhook = "",
-  ignoreNumbers = "",
   provider = "beta",
-  selectedMoveQueueId,
-  selectedInterval,
-  inatividade
+  //timeSendQueue,
+  //sendIdQueue,
+  transferQueueId,
+  timeToTransfer,    
+  promptId,
+  maxUseBotQueues = 3,
+  timeUseBotQueues = 0,
+  expiresTicket = 0,
+  expiresInactiveMessage = ""
 }: Request): Promise<Response> => {
   const company = await Company.findOne({
     where: {
@@ -112,7 +117,7 @@ const CreateWhatsAppService = async ({
   }
 
   if (queueIds.length > 1 && !greetingMessage) {
-    throw new AppError("ERR_WAPP_GREETING_REQUIREDggggg");
+    throw new AppError("ERR_WAPP_GREETING_REQUIRED");
   }
 
   if (token !== null && token !== "") {
@@ -148,23 +153,22 @@ const CreateWhatsAppService = async ({
       complationMessage,
       outOfHoursMessage,
       ratingMessage,
-      closeMessage,
       isDefault,
       companyId,
       token,
-      webhook,
-      ignoreNumbers,
       provider,
-      selectedMoveQueueId,
-      selectedInterval,
-      inatividade
+      //timeSendQueue,
+      //sendIdQueue,
+	  transferQueueId,
+	  timeToTransfer,	  
+      promptId,
+      maxUseBotQueues,
+      timeUseBotQueues,
+      expiresTicket,
+      expiresInactiveMessage
     },
     { include: ["queues"] }
   );
-
-  //logger.info("New Whatsapp");
-  //logger.info(token);
-  //logger.info(webhook);
 
   await AssociateWhatsappQueue(whatsapp, queueIds);
 

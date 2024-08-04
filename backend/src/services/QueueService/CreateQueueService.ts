@@ -3,8 +3,6 @@ import AppError from "../../errors/AppError";
 import Queue from "../../models/Queue";
 import Company from "../../models/Company";
 import Plan from "../../models/Plan";
-import { TypebotService } from "../TypebotService/apiTypebotService";
-import { N8nService } from "../N8nService/apiN8nService";
 
 interface QueueData {
   name: string;
@@ -13,21 +11,15 @@ interface QueueData {
   greetingMessage?: string;
   outOfHoursMessage?: string;
   schedules?: any[];
-  isChatbot?: boolean;
-  prioridade: number;
   ativarRoteador?: boolean;
   tempoRoteador: number;
-  workspaceTypebot?: string; 
-  typeChatbot?: string; 
-  typebotId?: string; 
-  publicId?: string;
-  resetChatbotMsg?: Boolean;
-  n8n?: string
-  n8nId?: string
+  orderQueue?: number;
+  integrationId?: number;
+  promptId?: number;
 }
 
 const CreateQueueService = async (queueData: QueueData): Promise<Queue> => {
-  const { color, name, companyId, prioridade, ativarRoteador, tempoRoteador } = queueData;
+  const { color, name, companyId,ativarRoteador, tempoRoteador} = queueData;
 
   const company = await Company.findOne({
     where: {
@@ -94,22 +86,6 @@ const CreateQueueService = async (queueData: QueueData): Promise<Queue> => {
     await queueSchema.validate({ color, name });
   } catch (err: any) {
     throw new AppError(err.message);
-  }
-
-  if (queueData.typebotId) {
-    const { typebot } = await TypebotService.getTypebot(companyId, queueData.typebotId)
-    queueData = {
-      ...queueData,
-      publicId: typebot?.publicId
-    }
-  }
-
-  if(queueData.n8n){
-    const  n8n  = await N8nService.getN8N(companyId, queueData.n8n)
-    queueData = {
-      ...queueData,
-      n8n: n8n
-    }
   }
 
   const queue = await Queue.create(queueData);

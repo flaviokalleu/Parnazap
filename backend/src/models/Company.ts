@@ -37,22 +37,10 @@ class Company extends Model<Company> {
   phone: string;
 
   @Column
-  namecomplete: string;
-
-  @Column
-  pais: string;
-
-  @Column
-  indicator: string;	
-	
-  @Column
   email: string;
 
   @Column
   status: boolean;
-
-  @Column({ defaultValue: "" })
-  document: string;
 
   @Column
   dueDate: string;

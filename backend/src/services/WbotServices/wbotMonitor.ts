@@ -2,7 +2,7 @@ import {
   WASocket,
   BinaryNode,
   Contact as BContact,
-} from "@laxeder/baileys";
+} from "@whiskeysockets/baileys";
 import * as Sentry from "@sentry/node";
 
 import { Op } from "sequelize";
@@ -15,7 +15,6 @@ import Whatsapp from "../../models/Whatsapp";
 import { logger } from "../../utils/logger";
 import createOrUpdateBaileysService from "../BaileysServices/CreateOrUpdateBaileysService";
 import CreateMessageService from "../MessageServices/CreateMessageService";
-import { addContactsUpdateJob } from "./ProcessContactsUpdate";
 
 type Session = WASocket & {
   id?: number;
@@ -32,15 +31,12 @@ const wbotMonitor = async (
   companyId: number
 ): Promise<void> => {
   try {
-  
-    //console.log(wbot);
-  
     wbot.ws.on("CB:call", async (node: BinaryNode) => {
       const content = node.content[0] as any;
 
       if (content.tag === "offer") {
         const { from, id } = node.attrs;
-        //console.log(`${from} is calling you with id ${id}`);
+
       }
 
       if (content.tag === "terminate") {
@@ -62,7 +58,7 @@ const wbotMonitor = async (
 
           const ticket = await Ticket.findOne({
             where: {
-              contactId: contact?.id,
+              contactId: contact.id,
               whatsappId: wbot.id,
               //status: { [Op.or]: ["close"] },
               companyId
@@ -91,7 +87,7 @@ const wbotMonitor = async (
           await ticket.update({
             lastMessage: body,
           });
-          
+
 
           if(ticket.status === "closed") {
             await ticket.update({
@@ -104,22 +100,13 @@ const wbotMonitor = async (
       }
     });
 
-  	const allowupserts = await Setting.findOne({
-    	where: { key: "allowupserts", companyId: 1 },
-    });
-  
-  	
+    wbot.ev.on("contacts.upsert", async (contacts: BContact[]) => {
 
-    if (allowupserts && allowupserts.value === "enabled") {
-    
-    logger.info("Upserts Liberados");
-  
-    	wbot.ev.on("contacts.upsert", async (contacts: BContact[]) => {
-      	  console.log("upsert", contacts);
-      	  await addContactsUpdateJob(whatsapp?.id,contacts);
-    	});
-    
-    }
+      await createOrUpdateBaileysService({
+        whatsappId: whatsapp.id,
+        contacts,
+      });
+    });
 
   } catch (err) {
     Sentry.captureException(err);

@@ -1,17 +1,18 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { makeStyles } from "@material-ui/core/styles";
 import Stepper from "@material-ui/core/Stepper";
 import Step from "@material-ui/core/Step";
 import StepLabel from "@material-ui/core/StepLabel";
 import Typography from "@material-ui/core/Typography";
-import { AttachFileIcon, Button, IconButton, StepContent, TextField, MenuItem, Select, Chip, InputLabel } from "@material-ui/core";
+import { Button, Grid, IconButton, StepContent, TextField } from "@material-ui/core";
 import AddIcon from "@material-ui/icons/Add";
 import DeleteOutlineIcon from "@material-ui/icons/DeleteOutline";
 import SaveIcon from "@material-ui/icons/Save";
 import EditIcon from "@material-ui/icons/Edit";
 import api from "../../services/api";
 import toastError from "../../errors/toastError";
-
+import { AttachFile, DeleteOutline } from "@material-ui/icons";
+import { head } from "lodash";
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -34,16 +35,18 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-export function QueueOptionStepper({ queueId, options, updateOptions, companyId }) {
+export function QueueOptionStepper({ queueId, options, updateOptions }) {
   const classes = useStyles();
-  const [activeOption, setActiveOption] = useState(-1);  
- 
+  const [activeOption, setActiveOption] = useState(-1);
+  const [attachment, setAttachment] = useState(null);
+  const attachmentFile = useRef(null);
+  const [confirmationOpen, setConfirmationOpen] = useState(false);
+
   const handleOption = (index) => async () => {
     setActiveOption(index);
     const option = options[index];
 
     if (option !== undefined && option.id !== undefined) {
-
       try {
         const { data } = await api.request({
           url: "/queue-options",
@@ -73,12 +76,22 @@ export function QueueOptionStepper({ queueId, options, updateOptions, companyId 
           method: "PUT",
           data: option,
         });
+		if (attachment != null) {
+          const formData = new FormData();
+          formData.append("file", attachment);
+          await api.post(`/queue-options/${option.id}/media-upload`, formData);
+        }
       } else {
         const { data } = await api.request({
           url: `/queue-options`,
           method: "POST",
           data: option,
         });
+		if (attachment != null) {
+          const formData = new FormData();
+          formData.append("file", attachment);
+          await api.post(`/queue-options/${option.id}/media-upload`, formData);
+        }
         option.id = data.id;
       }
       option.edition = false;
@@ -113,39 +126,25 @@ export function QueueOptionStepper({ queueId, options, updateOptions, companyId 
     updateOptions();
   };
 
-  const handleOptionChangeTitle = (event, index) => {
-    options[index].title = event.target.value;
-    updateOptions();
+  const handleAttachmentFile = (e) => {
+    const file = head(e.target.files);
+    if (file) {
+      setAttachment(file);
+    }
   };
 
-  const handleOptionChangeType = (event, index) => {
-    options[index].queueType = event.target.value;
+  const handleOptionChangeTitle = (event, index) => {
+    options[index].title = event.target.value;
     updateOptions();
   };
 
   const handleOptionChangeMessage = (event, index) => {
     options[index].message = event.target.value;
     updateOptions();
-    
-  };
-
-  const handleOptionIds = (event, index) => {
-    options[index].queueOptionsId = event.target.value;
-    updateOptions();
-  };
-
-  const handleUsersIds = (event, index) => {
-    
-    //console.log(index);
-    //console.log(event.target.value);
-  
-    options[index].queueUsersId = event.target.value;
-    updateOptions();
   };
 
   const renderTitle = (index) => {
-  const option = options[index];
-
+    const option = options[index];
     if (option.edition) {
       return (
         <>
@@ -156,22 +155,15 @@ export function QueueOptionStepper({ queueId, options, updateOptions, companyId 
             className={classes.input}
             placeholder="Título da opção"
           />
-          {option.edition && (//RODRIGO - TRATAMENTO ALTERAÇÃO DO CHATBOT
+                    <div style={{ display: "none" }}>
+            <input
+              type="file"
+              ref={attachmentFile}
+              onChange={(e) => handleAttachmentFile(e)}
+            />
+          </div>
+          {option.edition && (
             <>
-              <InputLabel>{"Selecione uma opção"}</InputLabel>
-              <Select
-                  value={option.queueType}
-                  size="small"
-                  onChange={(event) => handleOptionChangeType(event, index)}
-                  label="Tipo da opção"
-                  style={{ width: "40%" }}
-                >
-                  <MenuItem value={"text"}>Texto</MenuItem>
-                  <MenuItem value={"attendent"}>Atendente</MenuItem>
-                  <MenuItem value={"queue"}>Fila</MenuItem>
-                  <MenuItem value={"n8n"}>Externo (API)</MenuItem>
-                  {/* <MenuItem value={"file"}>Arquivo</MenuItem> */}
-              </Select>
               <IconButton
                 color="primary"
                 variant="outlined"
@@ -190,6 +182,33 @@ export function QueueOptionStepper({ queueId, options, updateOptions, companyId 
               >
                 <DeleteOutlineIcon />
               </IconButton>
+              {!attachment && !option.mediaPath && (
+                <IconButton
+                  variant="outlined"
+                  color="primary"
+                  size="small"
+                  className={classes.button}
+                    onClick={() => attachmentFile.current.click()}
+                  >
+                  <AttachFile/>
+                </IconButton>
+              )}
+                             {(option.mediaPath || attachment) && (
+                    <Grid xs={12} item>
+                      <Button startIcon={<AttachFile />}>
+                        {attachment != null
+                          ? attachment.name
+                          : option.mediaName}
+                      </Button>
+                      
+                        <IconButton
+                          onClick={() => setConfirmationOpen(true)}
+                          color="secondary"
+                        >
+                          <DeleteOutline />
+                        </IconButton>
+                    </Grid>
+                  )}
             </>
           )}
         </>
@@ -210,184 +229,24 @@ export function QueueOptionStepper({ queueId, options, updateOptions, companyId 
         </Typography>
       </>
     );
-  };     
-
-  const [queues, setQueues] = useState([]);
-  const [usersList, setUsersList] = useState([]);
-  const [userId, setUserId] = useState([null]);
-  const [queuesUsers, setQueuesUsers] = useState([null]);
-
-   //console.log('FILAS DO USUARIO  >>>>>>>>>>>>>>>>>>>'+users.queues.map[0])
-  
-  useEffect(() => {
-		(async () => {
-			try {
-				const { data } = await api.get("/queue", {
-					params: { companyId }
-				});
-				setQueues(data);
-			} catch (err) {
-				toastError(err);
-			}
-		})();
-	}, [options, companyId]);
-
-	useEffect(() => {
-    (async () => {
-      try {
-        const { data } = await api.get(`/users/`,{params: companyId});
-        const userList = data.users;
-        setUsersList(userList);
-      } catch (err) {
-        toastError(err);
-      }
-    })();
-  }, [options, companyId]);
-
-  useEffect(() => {
-    (async () => {
-       try {
-          const { data } = await api.get(`/users/${userId}`);
-          
-          const userQueueIds = data.queues;
-          setQueuesUsers(userQueueIds);
-        } catch (err) {
-          toastError(err);
-        }
-    })();
-  }, [options, companyId, userId]);
+  };
 
   const renderMessage = (index) => {
-  const option = options[index];
-
-//RODRIGO - TRATAMENTO ALTERAÇÃO DO CHATBOT
-  if (option.edition) {
-      if (option.queueType === "text") {
-        return (
-          <>
-            <TextField
-              style={{ width: "100%" }}
-              multiline
-              value={option.message}
-              onChange={(event) => handleOptionChangeMessage(event, index)}
-              size="small"
-              className={classes.input}
-              placeholder="Digite o texto da opção"
-            />
-          </>
-        );
-      } 
-      
-      else if (option.queueType === "n8n" ) {
-        return (
-          <>
-            <TextField
-              style={{ width: "100%" }}
-              multiline
-              value={option.message}
-              onChange={(event) => handleOptionChangeMessage(event, index)}
-              size="small"
-              className={classes.input}
-              placeholder="Digite a URL de integração (N8N / TypeBOT ...)"
-            />
-          </>
-        );
-      }
-      
-      else if (option.queueType === "queue" ) {
-        return (
-          <>
-            <TextField
-              style={{ width: "100%" }}
-              multiline
-              value={option.message}
-              onChange={(event) => handleOptionChangeMessage(event, index)}
-              size="small"
-              className={classes.input}
-              placeholder="Digite o texto da opção"
-            />
-
-            <InputLabel>{"Selecione uma Fila"}</InputLabel>
-              <Select
-                    value={option.queueOptionsId}
-                    style={{ width: "40%" }}
-                    size="small"
-                    onChange={(event) => handleOptionIds(event, index)}
-                >
-                    {queues.map(queue => (
-                      <MenuItem key={queue.id} value={queue.id}>
-                        {queue.name}
-                      </MenuItem>
-                    ))}
-              </Select>
-          </>
-        );
-      }
-      else if (option.queueType === "attendent" ) {
-        return (
-          <>
-           <TextField
-              style={{ width: "100%" }}
-              multiline
-              value={option.message}
-              onChange={(event) => handleOptionChangeMessage(event, index)}
-              size="small"
-              className={classes.input}
-              placeholder="Digite o texto da opção"
-            />
-
-            <InputLabel>{"Selecione um Atendente"}</InputLabel>
-          <Select
-            value={option.queueUsersId}
-            style={{ width: "40%" }}
-            size="small"
-            onChange={(event) => handleUsersIds(event, index)}
-          >
-            {usersList.map((u) => (
-              <MenuItem key={u.id} value={u.id}>
-                {u.name}
-              </MenuItem>
-            ))}
-          </Select>
-
-              <InputLabel>{"Selecione uma Fila"}</InputLabel>
-              <Select
-                    value={option.queueOptionsId}
-                    style={{ width: "40%" }}
-                    size="small"
-                    onChange={(event) => handleOptionIds(event, index)}
-                >
-                    
-                    {queues.map(queue => (
-                      <MenuItem key={queue.id} value={queue.id}>
-                        {queue.name}
-                      </MenuItem>
-                    ))}
-              </Select>
-          </>
-
-            
-        );
-      } else if (option.queueType === "file"){
-        return (
+    const option = options[index];
+    if (option.edition) {
+      return (
         <>
           <TextField
-              style={{ width: "100%" }}
-              multiline
-              value={option.message}
-              onChange={(event) => handleOptionChangeMessage(event, index)}
-              size="small"
-              className={classes.input}
-              placeholder="Digite o texto da opção"
-            />
-          {/* <Button startIcon={<AttachFileIcon />}>
-                          {attachment != null
-                            ? attachment.name
-                            : campaign.mediaName}
-          </Button> */}
+            style={{ width: "100%" }}
+            multiline
+            value={option.message}
+            onChange={(event) => handleOptionChangeMessage(event, index)}
+            size="small"
+            className={classes.input}
+            placeholder="Digite o texto da opção"
+          />
         </>
-        );
-      }
+      );
     }
     return (
       <>
@@ -406,9 +265,6 @@ export function QueueOptionStepper({ queueId, options, updateOptions, companyId 
       edition: false,
       option: optionNumber,
       queueId,
-      queueType: options[index].queueType,
-      queueOptionsId: options[index].queueOptionsId,
-      queueUsersId: options[index].queueUsersId,
       parentId: options[index].id,
       children: [],
     });
@@ -464,7 +320,7 @@ export function QueueOptionStepper({ queueId, options, updateOptions, companyId 
   return renderStepper();
 }
 
-export function QueueOptions({ queueId, companyId }) {
+export function QueueOptions({ queueId }) {
   const classes = useStyles();
   const [options, setOptions] = useState([]);
 
@@ -501,7 +357,6 @@ export function QueueOptions({ queueId, companyId }) {
           queueId={queueId}
           updateOptions={updateOptions}
           options={options}
-          companyId={companyId}
         />
       );
     }
@@ -518,9 +373,6 @@ export function QueueOptions({ queueId, companyId }) {
       edition: false,
       option: options.length + 1,
       queueId,
-      queueType: "",
-      queueOptionsId: null,
-      queueUsersId: null,
       parentId: null,
       children: [],
     };

@@ -1,40 +1,36 @@
-import React, { useState, useEffect } from "react";
 import {
-  makeStyles,
-  Paper,
-  Grid,
   FormControl,
+  Grid,
+  IconButton,
   InputLabel,
   MenuItem,
-  TextField,
+  Paper,
+  Select,
   Table,
-  TableHead,
   TableBody,
   TableCell,
+  TableHead,
   TableRow,
-  IconButton,
-  Select,
+  TextField,
+  makeStyles,
 } from "@material-ui/core";
-import { Formik, Form, Field } from "formik";
+import { Field, Form, Formik } from "formik";
+import React, { useEffect, useState } from "react";
 import ButtonWithSpinner from "../ButtonWithSpinner";
 import ConfirmationModal from "../ConfirmationModal";
-import { Link as RouterLink } from "react-router-dom";
-import { i18n } from "../../translate/i18n";
-import Link from "@material-ui/core/Link";
-import CssBaseline from "@material-ui/core/CssBaseline";
-import Container from "@material-ui/core/Container";
 
 import { Edit as EditIcon } from "@material-ui/icons";
 
+import { has, head, isArray } from "lodash";
 import { toast } from "react-toastify";
 import useCompanies from "../../hooks/useCompanies";
-import usePlans from "../../hooks/usePlans";
-import ModalUsers from "../ModalUsers";
-import api from "../../services/api";
-import { head, isArray, has } from "lodash";
 import { useDate } from "../../hooks/useDate";
+import usePlans from "../../hooks/usePlans";
+import api from "../../services/api";
+import ModalUsers from "../ModalUsers";
 
 import moment from "moment";
+
 const useStyles = makeStyles((theme) => ({
   root: {
     width: "100%",
@@ -83,9 +79,6 @@ export function CompanyForm(props) {
     name: "",
     email: "",
     phone: "",
-    namecomplete: "",
-    pais: "",
-    indicator: "",
     planId: "",
     status: true,
     campaignsEnabled: false,
@@ -148,25 +141,10 @@ export function CompanyForm(props) {
     setModalUser(false);
   };
 
-  const incrementDueDateMon = () => {
-    const data = { ...record };
-    data.recurrence = "MENSAL";
-    if (data.dueDate !== "" && data.dueDate !== null) {
-      data.dueDate = moment(data.dueDate)
-        .add(1, "month")
-        .format("YYYY-MM-DD");
-    }
-    setRecord(data);
-  }
   const incrementDueDate = () => {
     const data = { ...record };
     if (data.dueDate !== "" && data.dueDate !== null) {
       switch (data.recurrence) {
-        case "TESTE":
-          data.dueDate = moment(data.dueDate)
-            .add(1, "day")
-            .format("YYYY-MM-DD");
-          break;
         case "MENSAL":
           data.dueDate = moment(data.dueDate)
             .add(1, "month")
@@ -224,18 +202,8 @@ export function CompanyForm(props) {
               <Grid xs={12} sm={6} md={4} item>
                 <Field
                   as={TextField}
-                  label="Empresa"
-                  name="name"
-                  variant="outlined"
-                  className={classes.fullWidth}
-                  margin="dense"
-                />
-              </Grid>
-              <Grid xs={12} sm={6} md={4} item>
-                <Field
-                  as={TextField}
                   label="Nome"
-                  name="namecomplete"
+                  name="name"
                   variant="outlined"
                   className={classes.fullWidth}
                   margin="dense"
@@ -257,26 +225,6 @@ export function CompanyForm(props) {
                   as={TextField}
                   label="Telefone"
                   name="phone"
-                  variant="outlined"
-                  className={classes.fullWidth}
-                  margin="dense"
-                />
-              </Grid>
-              <Grid xs={12} sm={6} md={4} item>
-                <Field
-                  as={TextField}
-                  label="País"
-                  name="pais"
-                  variant="outlined"
-                  className={classes.fullWidth}
-                  margin="dense"
-                />
-              </Grid>
-              <Grid xs={12} sm={6} md={4} item>
-                <Field
-                  as={TextField}
-                  label="Indicador"
-                  name="indicator"
                   variant="outlined"
                   className={classes.fullWidth}
                   margin="dense"
@@ -318,7 +266,7 @@ export function CompanyForm(props) {
                   </Field>
                 </FormControl>
               </Grid>
-{/* <Grid xs={12} sm={6} md={2} item>
+              <Grid xs={12} sm={6} md={2} item>
                 <FormControl margin="dense" variant="outlined" fullWidth>
                   <InputLabel htmlFor="status-selection">Campanhas</InputLabel>
                   <Field
@@ -333,12 +281,12 @@ export function CompanyForm(props) {
                     <MenuItem value={false}>Desabilitadas</MenuItem>
                   </Field>
                 </FormControl>
-              </Grid> */}
+              </Grid>
               <Grid xs={12} sm={6} md={2} item>
                 <FormControl variant="outlined" fullWidth>
                   <Field
                     as={TextField}
-                    label="Próximo Vencimento"
+                    label="Data de Vencimento"
                     type="date"
                     name="dueDate"
                     InputLabelProps={{
@@ -364,24 +312,28 @@ export function CompanyForm(props) {
                     margin="dense"
                   >
                     <MenuItem value="MENSAL">Mensal</MenuItem>
+                    {/*<MenuItem value="BIMESTRAL">Bimestral</MenuItem>*/}
+                    {/*<MenuItem value="TRIMESTRAL">Trimestral</MenuItem>*/}
+                    {/*<MenuItem value="SEMESTRAL">Semestral</MenuItem>*/}
+                    {/*<MenuItem value="ANUAL">Anual</MenuItem>*/}
                   </Field>
                 </FormControl>
               </Grid>
               <Grid xs={12} item>
                 <Grid justifyContent="flex-end" spacing={1} container>
+                  <Grid xs={4} md={1} item>
+                    <ButtonWithSpinner
+                      className={classes.fullWidth}
+                      style={{ marginTop: 7 }}
+                      loading={loading}
+                      onClick={() => onCancel()}
+                      variant="contained"
+                    >
+                      Limpar
+                    </ButtonWithSpinner>
+                  </Grid>
                   {record.id !== undefined ? (
                     <>
-                      <Grid xs={4} md={1} item>
-                        <ButtonWithSpinner
-                          className={classes.fullWidth}
-                          style={{ marginTop: 7 }}
-                          loading={loading}
-                          onClick={() => onCancel()}
-                          variant="contained"
-                        >
-                          Limpar
-                        </ButtonWithSpinner>
-                      </Grid>
                       <Grid xs={6} md={1} item>
                         <ButtonWithSpinner
                           style={{ marginTop: 7 }}
@@ -394,7 +346,7 @@ export function CompanyForm(props) {
                           Excluir
                         </ButtonWithSpinner>
                       </Grid>
-                      {/*                       <Grid xs={6} md={2} item>
+                      <Grid xs={6} md={2} item>
                         <ButtonWithSpinner
                           style={{ marginTop: 7 }}
                           className={classes.fullWidth}
@@ -405,7 +357,7 @@ export function CompanyForm(props) {
                         >
                           + Vencimento
                         </ButtonWithSpinner>
-                      </Grid> */}
+                      </Grid>
                       <Grid xs={6} md={1} item>
                         <ButtonWithSpinner
                           style={{ marginTop: 7 }}
@@ -418,20 +370,20 @@ export function CompanyForm(props) {
                           Usuário
                         </ButtonWithSpinner>
                       </Grid>
-                      <Grid xs={6} md={1} item>
-                        <ButtonWithSpinner
-                          className={classes.fullWidth}
-                          style={{ marginTop: 7 }}
-                          loading={loading}
-                          type="submit"
-                          variant="contained"
-                          color="primary"
-                        >
-                          Salvar
-                        </ButtonWithSpinner>
-                      </Grid>
                     </>
                   ) : null}
+                  <Grid xs={6} md={1} item>
+                    <ButtonWithSpinner
+                      className={classes.fullWidth}
+                      style={{ marginTop: 7 }}
+                      loading={loading}
+                      type="submit"
+                      variant="contained"
+                      color="primary"
+                    >
+                      Salvar
+                    </ButtonWithSpinner>
+                  </Grid>
                 </Grid>
               </Grid>
             </Grid>
@@ -470,16 +422,22 @@ export function CompaniesManagerGrid(props) {
   };
 
   const rowStyle = (record) => {
-  
-    if (record.status) {
-      return { backgroundColor: "#00800040" };
-    }else{
-      return { backgroundColor: "#ff000040" };
+    if (moment(record.dueDate).isValid()) {
+      const now = moment();
+      const dueDate = moment(record.dueDate);
+      const diff = dueDate.diff(now, "days");
+      if (diff === 5) {
+        return { backgroundColor: "#fffead" };
+      }
+      if (diff >= -3 && diff <= 4) {
+        return { backgroundColor: "#f7cc8f" };
+      }
+      if (diff === -4) {
+        return { backgroundColor: "#fa8c8c" };
+      }
     }
-  
     return {};
   };
-
 
   return (
     <Paper className={classes.tableContainer}>
@@ -490,7 +448,6 @@ export function CompaniesManagerGrid(props) {
       >
         <TableHead>
           <TableRow>
-            <TableCell align="left">ID</TableCell>
             <TableCell align="center" style={{ width: "1%" }}>
               #
             </TableCell>
@@ -498,34 +455,35 @@ export function CompaniesManagerGrid(props) {
             <TableCell align="left">E-mail</TableCell>
             <TableCell align="left">Telefone</TableCell>
             <TableCell align="left">Plano</TableCell>
+            <TableCell align="left">Campanhas</TableCell>
+            <TableCell align="left">Status</TableCell>
+            <TableCell align="left">Criada Em</TableCell>
             <TableCell align="left">Vencimento</TableCell>
-            <TableCell align="left">Indicador</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
-        {/* Sort records by ID in ascending order */}
-        {records.sort((a, b) => b.id - a.id).map((row, key) => (
-          <TableRow style={rowStyle(row)} key={key}>
-            {/* Render table cells */}
-            <TableCell align="left">{row.id || "-"}</TableCell>
-            <TableCell align="center" style={{ width: "1%" }}>
-              <IconButton onClick={() => onSelect(row)} aria-label="delete">
-                <EditIcon color="secondary" />
-              </IconButton>
-            </TableCell>
-            <TableCell align="left">{row.name || "-"}</TableCell>
-            <TableCell align="left">{row.email || "-"}</TableCell>
-            <TableCell align="left">{row.phone || "-"}</TableCell>
-            <TableCell align="left">{renderPlan(row)}</TableCell>
-            <TableCell align="left">
-              {dateToClient(row.dueDate)}
-              <br />
-              <span>{row.recurrence}</span>
-            </TableCell>
-			<TableCell align="left">{row.indicator || "-"}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
+          {records.map((row, key) => (
+            <TableRow style={rowStyle(row)} key={key}>
+              <TableCell align="center" style={{ width: "1%" }}>
+                <IconButton onClick={() => onSelect(row)} aria-label="delete">
+                  <EditIcon />
+                </IconButton>
+              </TableCell>
+              <TableCell align="left">{row.name || "-"}</TableCell>
+              <TableCell align="left">{row.email || "-"}</TableCell>
+              <TableCell align="left">{row.phone || "-"}</TableCell>
+              <TableCell align="left">{renderPlan(row)}</TableCell>
+              <TableCell align="left">{renderCampaignsStatus(row)}</TableCell>
+              <TableCell align="left">{renderStatus(row)}</TableCell>
+              <TableCell align="left">{dateToClient(row.createdAt)}</TableCell>
+              <TableCell align="left">
+                {dateToClient(row.dueDate)}
+                <br />
+                <span>{row.recurrence}</span>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
       </Table>
     </Paper>
   );
@@ -542,13 +500,10 @@ export default function CompaniesManager() {
     name: "",
     email: "",
     phone: "",
-    namecomplete: "",
-    pais: "",
-    indicator: "",
     planId: "",
     status: true,
     campaignsEnabled: false,
-    dueDate: moment().add(1, "month").format("YYYY-MM-DD"),
+    dueDate: "",
     recurrence: "",
   });
 
@@ -567,7 +522,6 @@ export default function CompaniesManager() {
     }
     setLoading(false);
   };
-
 
   const handleSubmit = async (data) => {
     setLoading(true);
@@ -601,8 +555,6 @@ export default function CompaniesManager() {
     setLoading(false);
   };
 
-
-
   const handleOpenDeleteDialog = () => {
     setShowConfirmDialog(true);
   };
@@ -613,9 +565,6 @@ export default function CompaniesManager() {
       name: "",
       email: "",
       phone: "",
-      namecomplete: "",
-      pais: "",
-      indicator: "",
       planId: "",
       status: true,
       campaignsEnabled: false,
@@ -640,9 +589,6 @@ export default function CompaniesManager() {
       id: data.id,
       name: data.name || "",
       phone: data.phone || "",
-      namecomplete: data.namecomplete || "",
-      pais: data.pais || "",
-      indicator: data.indicator || "",
       email: data.email || "",
       planId: data.planId || "",
       status: data.status === false ? false : true,

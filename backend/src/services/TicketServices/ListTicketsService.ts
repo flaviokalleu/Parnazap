@@ -25,8 +25,6 @@ interface Request {
   tags: number[];
   users: number[];
   companyId: number;
-  dateFrom?: string;
-  dateUntil?: string;
 }
 
 interface Response {
@@ -47,9 +45,7 @@ const ListTicketsService = async ({
   showAll,
   userId,
   withUnreadMessages,
-  companyId,
-  dateFrom,
-  dateUntil
+  companyId
 }: Request): Promise<Response> => {
   let whereCondition: Filterable["where"] = {
     [Op.or]: [{ userId }, { status: "pending" }],
@@ -82,7 +78,7 @@ const ListTicketsService = async ({
       model: Whatsapp,
       as: "whatsapp",
       attributes: ["name"]
-    }
+    },
   ];
 
   if (showAll === "true") {
@@ -153,17 +149,6 @@ const ListTicketsService = async ({
         [Op.between]: [
           +startOfDay(parseISO(updatedAt)),
           +endOfDay(parseISO(updatedAt))
-        ]
-      }
-    };
-  }
-
-  if (dateFrom && dateUntil) {
-    whereCondition = {
-      updatedAt: {
-        [Op.between]: [
-          +startOfDay(parseISO(dateFrom)),
-          +endOfDay(parseISO(dateUntil))
         ]
       }
     };
@@ -241,7 +226,6 @@ const ListTicketsService = async ({
   });
 
   const hasMore = count > offset + tickets.length;
-  console.log(tickets.length);
 
   return {
     tickets,

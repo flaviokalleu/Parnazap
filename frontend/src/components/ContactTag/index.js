@@ -17,7 +17,7 @@ const ContactTag = ({ tag }) => {
     const classes = useStyles();
 
     return (
-        <div className={classes.tag} style={{ backgroundColor: tag.color, marginTop: '2px' }}>
+        <div className={classes.tag} style={{ backgroundColor: tag.color, marginTop: "2px" }}>
             {tag.name.toUpperCase()}
         </div>
     )

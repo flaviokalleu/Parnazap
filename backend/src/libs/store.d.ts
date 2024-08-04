@@ -10,7 +10,7 @@ import {
   WAMessageCursor,
   WAMessageKey,
   WALegacySocket
-} from "@laxeder/baileys";
+} from "@adiwajshing/baileys";
 import KeyedDB from "@adiwajshing/keyed-db";
 
 export interface Store {
@@ -114,4 +114,3 @@ export interface Store {
   writeToFile: (path: string) => void;
   readFromFile: (path: string) => void;
 }
-//console.log(groupMetadata);

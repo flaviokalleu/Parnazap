@@ -19,6 +19,8 @@ import Queue from "./Queue";
 import Ticket from "./Ticket";
 import WhatsappQueue from "./WhatsappQueue";
 import Company from "./Company";
+import Prompt from "./Prompt";
+import QueueIntegrations from "./QueueIntegrations";
 
 @Table
 class Whatsapp extends Model<Whatsapp> {
@@ -70,10 +72,6 @@ class Whatsapp extends Model<Whatsapp> {
   @Column(DataType.TEXT)
   ratingMessage: string;
 
-  @Default("")
-  @Column(DataType.TEXT)
-  closeMessage: string;
-
   @Column({ defaultValue: "stable" })
   provider: string;
 
@@ -107,24 +105,44 @@ class Whatsapp extends Model<Whatsapp> {
   @Column
   token: string;
 
-  @Column
-  webhook: string;
+  //@Default(0)
+  //@Column
+  //timeSendQueue: number;
 
-  @Column
-  ignoreNumbers: string;
-
-  @Column
-  number: string;
-
-  @Column
-  selectedInterval: number;
+  //@Column
+  //sendIdQueue: number;
   
   @Column
-  selectedMoveQueueId: number;
+  transferQueueId: number;
 
   @Column
-  inatividade: string;
-  
+  timeToTransfer: number;  
+
+  @ForeignKey(() => Prompt)
+  @Column
+  promptId: number;
+
+  @BelongsTo(() => Prompt)
+  prompt: Prompt;
+
+  @ForeignKey(() => QueueIntegrations)
+  @Column
+  integrationId: number;
+
+  @BelongsTo(() => QueueIntegrations)
+  queueIntegrations: QueueIntegrations;
+
+  @Column
+  maxUseBotQueues: number;
+
+  @Column
+  timeUseBotQueues: string;
+
+  @Column
+  expiresTicket: number;
+
+  @Column
+  expiresInactiveMessage: string;
 }
 
 export default Whatsapp;

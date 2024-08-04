@@ -25,10 +25,7 @@ import { has, isObject } from "lodash";
 
 import { AuthContext } from "../../context/Auth/AuthContext";
 import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
-import whatsBackground from "../../assets/wa-background.png"
 
-import { i18n } from "../../translate/i18n";
-import Title from "../../components/Title";
 const useStyles = makeStyles((theme) => ({
   mainContainer: {
     display: "flex",
@@ -39,16 +36,12 @@ const useStyles = makeStyles((theme) => ({
     height: `calc(100% - 48px)`,
     overflowY: "hidden",
     border: "1px solid rgba(0, 0, 0, 0.12)",
-    backgroundImage: theme.mode ===  `url(${whatsBackground})`,
-		backgroundPosition: 'center', 
-		backgroundSize: 'cover', 
-		backgroundRepeat: 'no-repeat', 
   },
   gridContainer: {
     flex: 1,
     height: "100%",
     border: "1px solid rgba(0, 0, 0, 0.12)",
-    backgroundColor: "inherit",
+    backgroundColor: theme.palette.dark,
   },
   gridItem: {
     height: "100%",
@@ -215,9 +208,9 @@ function Chat(props) {
 
   useEffect(() => {
     const companyId = localStorage.getItem("companyId");
-    const socket = socketManager.GetSocket(companyId);
+    const socket = socketManager.getSocket(companyId);
 
-    const onChatUser = (data) => {
+    socket.on(`company-${companyId}-chat-user-${user.id}`, (data) => {
       if (data.action === "create") {
         setChats((prev) => [data.record, ...prev]);
       }
@@ -233,9 +226,9 @@ function Chat(props) {
         });
         setChats(changedChats);
       }
-    }
+    });
 
-    const onChat = (data) => {
+    socket.on(`company-${companyId}-chat`, (data) => {
       if (data.action === "delete") {
         const filteredChats = chats.filter((c) => c.id !== +data.id);
         setChats(filteredChats);
@@ -245,9 +238,10 @@ function Chat(props) {
         setCurrentChat({});
         history.push("/chats");
       }
-    }
+    });
 
-    const onCurrentChat = (data) => {
+    if (isObject(currentChat) && has(currentChat, "id")) {
+      socket.on(`company-${companyId}-chat-${currentChat.id}`, (data) => {
         if (data.action === "new-message") {
           setMessages((prev) => [...prev, data.newMessage]);
           const changedChats = chats.map((chat) => {
@@ -274,18 +268,12 @@ function Chat(props) {
           setChats(changedChats);
           scrollToBottomRef.current();
         }
-      }
-
-    socket.on(`company-${companyId}-chat-user-${user.id}`, onChatUser); 
-    socket.on(`company-${companyId}-chat`, onChat);
-    if (isObject(currentChat) && has(currentChat, "id")) {
-      socket.on(`company-${companyId}-chat-${currentChat.id}`, onCurrentChat);
+      });
     }
-        
+
     return () => {
       socket.disconnect();
     };
-    
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentChat, socketManager]);
 
@@ -344,11 +332,9 @@ function Chat(props) {
 
   const renderGrid = () => {
     return (
-      <>
-      <Title>{i18n.t("Chat interno")}</Title>
       <Grid className={classes.gridContainer} container>
         <Grid className={classes.gridItem} md={3} item>
-         
+          
             <div className={classes.btnContainer}>
               <Button
                 onClick={() => {
@@ -361,7 +347,7 @@ function Chat(props) {
                 Nova
               </Button>
             </div>
-        
+          
           <ChatList
             chats={chats}
             pageInfo={chatsPageInfo}
@@ -388,7 +374,6 @@ function Chat(props) {
           )}
         </Grid>
       </Grid>
-      </>
     );
   };
 

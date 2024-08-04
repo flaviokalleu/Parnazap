@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useHistory } from "react-router-dom";
-import axios from "axios";
 import { makeStyles } from "@material-ui/core/styles";
 import Paper from "@material-ui/core/Paper";
 
@@ -9,7 +8,8 @@ import { Button, CircularProgress, Grid, TextField, Typography } from "@material
 import { Field, Form, Formik } from "formik";
 import toastError from "../../errors/toastError";
 import { toast } from "react-toastify";
-import api from "../../services/api";
+// import api from "../../services/api";
+import axios from "axios";
 import usePlans from "../../hooks/usePlans";
 
 const useStyles = makeStyles((theme) => ({
@@ -22,7 +22,7 @@ const useStyles = makeStyles((theme) => ({
     marginTop: theme.spacing(1),
   },
   elementMargin: {
-    marginTop: theme.spacing(2),
+    padding: theme.spacing(2),
   },
   formContainer: {
     maxWidth: 500,
@@ -35,10 +35,11 @@ const useStyles = makeStyles((theme) => ({
 const MessagesAPI = () => {
   const classes = useStyles();
   const history = useHistory();
-  const [formMessageTextData,] = useState({ token: '',number: '', body: '', openTicket: '', queueId: '' })
-  const [formMessageMediaData,] = useState({ token: '', number: '', body: '', medias: '', openTicket: '', queueId: '' })
+
+  const [formMessageTextData,] = useState({ token: '', number: '', body: '' })
+  const [formMessageMediaData,] = useState({ token: '', number: '', medias: '' })
   const [file, setFile] = useState({})
-  
+
   const { getPlanCompany } = usePlans();
 
   useEffect(() => {
@@ -46,7 +47,7 @@ const MessagesAPI = () => {
       const companyId = localStorage.getItem("companyId");
       const planConfigs = await getPlanCompany(undefined, companyId);
       if (!planConfigs.plan.useExternalApi) {
-        toast.error("Você não possui acesso a este recurso! Faça um upgrade em sua assinatura ou contate o suporte!");
+        toast.error("Esta empresa não possui permissão para acessar essa página! Estamos lhe redirecionando.");
         setTimeout(() => {
           history.push(`/`)
         }, 1000);
@@ -61,49 +62,41 @@ const MessagesAPI = () => {
   }
 
   const handleSendTextMessage = async (values) => {
-    const { number, body, openTicket, queueId } = values;
-    const data = { number, body, openTicket, queueId };
-    var options = {
-      method: 'POST',
-      url: `${process.env.REACT_APP_BACKEND_URL}/api/messages/send`,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${values.token}`
-      },
-      data
-    };
-    
-    axios.request(options).then(function (response) {
+    const { number, body } = values;
+    const data = { number, body };
+    try {
+      await axios.request({
+        url: getEndpoint(),
+        method: 'POST',
+        data,
+        headers: {
+          'Content-type': 'application/json',
+          'Authorization': `Bearer ${values.token}`
+        }
+      })
       toast.success('Mensagem enviada com sucesso');
-    }).catch(function (error) {
-      toastError(error);
-    });    
+    } catch (err) {
+      toastError(err);
+    }
   }
 
-  const handleSendMediaMessage = async (values) => { 
+  const handleSendMediaMessage = async (values) => {
     try {
-      const firstFile =  file[0];
+      const firstFile = file[0];
       const data = new FormData();
       data.append('number', values.number);
-      data.append('openTicket', values.openTicket);
-      data.append('queueId', values.queueId);
-      data.append('body', values.body);
+      data.append('body', firstFile.name);
       data.append('medias', firstFile);
-      var options = {
+      await axios.request({
+        url: getEndpoint(),
         method: 'POST',
-        url: `${process.env.REACT_APP_BACKEND_URL}/api/messages/send`,
+        data,
         headers: {
-          'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${values.token}`
-        },
-        data
-      };
-      
-      axios.request(options).then(function (response) {
-        toast.success('Mensagem enviada com sucesso');
-      }).catch(function (error) {
-        toastError(error);
-      });      
+          'Content-type': 'multipart/form-data',
+          'Authorization': `Bearer ${values.token}`
+        }
+      })
+      toast.success('Mensagem enviada com sucesso');
     } catch (err) {
       toastError(err);
     }
@@ -152,32 +145,6 @@ const MessagesAPI = () => {
                   required
                 />
               </Grid>
-			  <Grid item xs={12} md={6}>
-                <Field
-                  as={TextField}
-                  label={i18n.t("messagesAPI.textMessage.openTicket")}
-                  name="openTicket"
-                  autoFocus
-                  variant="outlined"
-                  margin="dense"
-                  fullWidth
-                  className={classes.textField}
-                  required
-                />
-              </Grid>
-			  <Grid item xs={12} md={6}>
-                <Field
-                  as={TextField}
-                  label={i18n.t("messagesAPI.textMessage.queueId")}
-                  name="queueId"
-                  autoFocus
-                  variant="outlined"
-                  margin="dense"
-                  fullWidth
-                  className={classes.textField}
-                  required
-                />
-              </Grid>
               <Grid item xs={12}>
                 <Field
                   as={TextField}
@@ -193,18 +160,18 @@ const MessagesAPI = () => {
               </Grid>
               <Grid item xs={12} className={classes.textRight}>
                 <Button
-									type="submit"
-									color="primary"
-									variant="contained"
-									className={classes.btnWrapper}
-								>
-									{isSubmitting ? (
-										<CircularProgress
-											size={24}
-											className={classes.buttonProgress}
-										/>
-									) : 'Enviar'}
-								</Button>
+                  type="submit"
+                  color="primary"
+                  variant="contained"
+                  className={classes.btnWrapper}
+                >
+                  {isSubmitting ? (
+                    <CircularProgress
+                      size={24}
+                      className={classes.buttonProgress}
+                    />
+                  ) : 'Enviar'}
+                </Button>
               </Grid>
             </Grid>
           </Form>
@@ -220,7 +187,6 @@ const MessagesAPI = () => {
         enableReinitialize={true}
         onSubmit={(values, actions) => {
           setTimeout(async () => {
-            // console.log(values, file)
             await handleSendMediaMessage(values);
             actions.setSubmitting(false);
             actions.resetForm()
@@ -259,61 +225,23 @@ const MessagesAPI = () => {
                   required
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
-                <Field
-                  as={TextField}
-                  label={i18n.t("messagesAPI.textMessage.openTicket")}
-                  name="openTicket"
-                  autoFocus
-                  variant="outlined"
-                  margin="dense"
-                  fullWidth
-                  className={classes.textField}
-                  required
-                />
-              </Grid>
-			  <Grid item xs={12} md={6}>
-                <Field
-                  as={TextField}
-                  label={i18n.t("messagesAPI.textMessage.queueId")}
-                  name="queueId"
-                  autoFocus
-                  variant="outlined"
-                  margin="dense"
-                  fullWidth
-                  className={classes.textField}
-                  required
-                />
-              </Grid>
-			  <Grid item xs={12}>
-                <Field
-                  as={TextField}
-                  label={i18n.t("messagesAPI.textMessage.body")}
-                  name="body"
-                  autoFocus
-                  variant="outlined"
-                  margin="dense"
-                  fullWidth
-                  className={classes.textField}
-                />
-              </Grid>
               <Grid item xs={12}>
                 <input type="file" name="medias" id="medias" required onChange={(e) => setFile(e.target.files)} />
               </Grid>
               <Grid item xs={12} className={classes.textRight}>
                 <Button
-									type="submit"
-									color="primary"
-									variant="contained"
-									className={classes.btnWrapper}
-								>
-									{isSubmitting ? (
-										<CircularProgress
-											size={24}
-											className={classes.buttonProgress}
-										/>
-									) : 'Enviar'}
-								</Button>
+                  type="submit"
+                  color="primary"
+                  variant="contained"
+                  className={classes.btnWrapper}
+                >
+                  {isSubmitting ? (
+                    <CircularProgress
+                      size={24}
+                      className={classes.buttonProgress}
+                    />
+                  ) : 'Enviar'}
+                </Button>
               </Grid>
             </Grid>
           </Form>
@@ -325,6 +253,8 @@ const MessagesAPI = () => {
   return (
     <Paper
       className={classes.mainPaper}
+      style={{marginLeft: "5px"}}
+      // className={classes.elementMargin}
       variant="outlined"
     >
       <Typography variant="h5">
@@ -336,7 +266,7 @@ const MessagesAPI = () => {
       <Typography component="div">
         <ol>
           <li>Mensagens de Texto</li>
-          <li>Mensagens de Mídia</li>
+          <li>Mensagens de Media</li>
         </ol>
       </Typography>
       <Typography variant="h6" color="primary" className={classes.elementMargin}>
@@ -345,14 +275,14 @@ const MessagesAPI = () => {
       <Typography className={classes.elementMargin} component="div">
         <b>Observações importantes</b><br />
         <ul>
-          <li>Antes de enviar mensagens, é necessário o cadastro do token vinculado à conexão que enviará as mensagens. <br/>Para realizar o cadastro acesse o menu "Conexões", clique no botão editar da conexão e insira o token no devido campo.</li>
+          <li>Antes de enviar mensagens, é necessário o cadastro do token vinculado à conexão que enviará as mensagens. <br />Para realizar o cadastro acesse o menu "Conexões", clique no botão editar da conexão e insira o token no devido campo.</li>
           <li>
             O número para envio não deve ter mascara ou caracteres especiais e deve ser composto por:
-              <ul>
-                <li>Código do país</li>
-                <li>DDD</li>
-                <li>Número</li>
-              </ul>
+            <ul>
+              <li>Código do país</li>
+              <li>DDD</li>
+              <li>Número</li>
+            </ul>
           </li>
         </ul>
       </Typography>
@@ -365,12 +295,8 @@ const MessagesAPI = () => {
             <p>Seguem abaixo a lista de informações necessárias para envio das mensagens de texto:</p>
             <b>Endpoint: </b> {getEndpoint()} <br />
             <b>Método: </b> POST <br />
-            <b>Headers: </b> Authorization Bearer (token cadastrado) e Content-Type (application/json) <br />
-            <b>Abrir Ticket: </b> Utilize 1 para abrir e 0 para não abrir um ticket <br />
-            <b>ID da Fila: </b> Informe o ID da fila desejada (obrigatório Abrir Ticket: 1)<br />
-            <b>Body: </b> Mensagem a ser enviada<br />
-            <b>JSON Payload:</b>
-			<p>{"{\"number\": \"555193231592\",\"openTicket\": \"0\",\"queueId\": \"0\",\"body\": \"Teste via api\"}"}</p>
+            <b>Headers: </b> Authorization (Bearer token) e Content-Type (application/json) <br />
+            <b>Body: </b> {"{ \"number\": \"595985523065\", \"body\": \"Sua mensagem\" }"}
           </Typography>
         </Grid>
         <Grid item xs={12} sm={6}>
@@ -381,22 +307,19 @@ const MessagesAPI = () => {
         </Grid>
       </Grid>
       <Typography variant="h6" color="primary" className={classes.elementMargin}>
-        2. Mensagens de Mídia
+        2. Mensagens de Media
       </Typography>
       <Grid container>
         <Grid item xs={12} sm={6}>
           <Typography className={classes.elementMargin} component="div">
-            <p>Seguem abaixo a lista de informações necessárias para envio das mensagens de mídia:</p>
+            <p>Seguem abaixo a lista de informações necessárias para envio das mensagens de texto:</p>
             <b>Endpoint: </b> {getEndpoint()} <br />
             <b>Método: </b> POST <br />
-            <b>Abrir Ticket: </b> Utilize 1 para abrir e 0 para não abrir um ticket <br />
-            <b>ID da Fila: </b> Informe o ID da fila desejada (obrigatório Abrir Ticket: 1) <br />
-            <b>Body: </b> Mensagem a ser enviada<br />
-            <b>Headers: </b> Authorization Bearer (token cadastrado) e Content-Type (multipart/form-data) <br />
+            <b>Headers: </b> Authorization (Bearer token) e Content-Type (multipart/form-data) <br />
             <b>FormData: </b> <br />
             <ul>
               <li>
-                <b>number: </b> 555193231592
+                <b>number: </b> 5599999999999
               </li>
               <li>
                 <b>medias: </b> arquivo

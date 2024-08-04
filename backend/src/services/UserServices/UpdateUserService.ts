@@ -1,7 +1,6 @@
 import * as Yup from "yup";
 
 import AppError from "../../errors/AppError";
-import { SerializeUser } from "../../helpers/SerializeUser";
 import ShowUserService from "./ShowUserService";
 import Company from "../../models/Company";
 import User from "../../models/User";
@@ -12,12 +11,10 @@ interface UserData {
   name?: string;
   profile?: string;
   companyId?: number;
-  SuperIs?: boolean;
   queueIds?: number[];
-  whatsappId?: number;  
-  farewellMessage?: string;
+  whatsappId?: number;
+  allTicket?: string;
 }
-
 
 interface Request {
   userData: UserData;
@@ -51,53 +48,26 @@ const UpdateUserService = async ({
     name: Yup.string().min(2),
     email: Yup.string().email(),
     profile: Yup.string(),
-    password: Yup.string()
+    password: Yup.string(),
+	allTicket: Yup.string()
   });
 
-  const { email, password, profile, name, queueIds = [], whatsappId, SuperIs, farewellMessage} = userData;
-
-  //console.log("SUPER VALUE:");
-  //console.log(SuperIs);
+  const { email, password, profile, name, queueIds = [], whatsappId, allTicket } = userData;
 
   try {
-    await schema.validate({ email, password, profile, name });
+    await schema.validate({ email, password, profile, name, allTicket });
   } catch (err: any) {
     throw new AppError(err.message);
   }
 
-  let updatedProfile = profile; // Initialize a new variable to store the updated value
-
-
-  if (SuperIs == true) {
-  	updatedProfile = "admin"; // Update the new variable instead of the constant
-  }
-
-  if(user.id === 1){
-  
-   	await user.update({
-    	email,
-    	password,
-    	profile: "admin",
-    	name,
-    	whatsappId: whatsappId ? whatsappId : null,
-    	super: true,
-    	farewellMessage
-  	});
-  
-  }else{
-
-	await user.update({
-    	email,
-    	password,
-    	profile: updatedProfile,
-    	name,
-    	whatsappId: whatsappId ? whatsappId : null,
-    	super: SuperIs ? SuperIs : false,
-    	farewellMessage
-    });
-  
-  }
-
+  await user.update({
+    email,
+    password,
+    profile,
+    name,
+    whatsappId: whatsappId || null,
+	allTicket
+  });
 
   await user.$set("queues", queueIds);
 
@@ -112,13 +82,9 @@ const UpdateUserService = async ({
     profile: user.profile,
     companyId: user.companyId,
     company,
-    super: user.super,
-    queues: user.queues,
-    whatsapp: user.whatsapp,
-    greetingMessage: user.farewellMessage
+    queues: user.queues
   };
 
-  //console.log(serializedUser);
   return serializedUser;
 };
 

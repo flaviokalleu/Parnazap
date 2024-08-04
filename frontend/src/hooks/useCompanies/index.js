@@ -10,18 +10,6 @@ const useCompanies = () => {
         });
         return responseData;
     }
-    
-    const saveInternal = async (data) => {
-        const { data: responseData } = await api.request({
-            url: '/companies/internal',
-            method: 'POST',
-            data
-        });
-    
-        //console.log(responseData);
-    
-        return responseData;
-    }
 
     const findAll = async (id) => {
         const { data } = await api.request({
@@ -84,7 +72,6 @@ const useCompanies = () => {
 
     return {
         save,
-        saveInternal,
         update,
         remove,
         list,

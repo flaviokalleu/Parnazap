@@ -8,16 +8,13 @@ interface PlanData {
   connections: number;
   queues: number;
   value: number;
-  useWhatsapp?: boolean;
-  useFacebook?: boolean;
-  useInstagram?: boolean;
   useCampaigns?: boolean;
   useSchedules?: boolean;
   useInternalChat?: boolean;
   useExternalApi?: boolean;
   useKanban?: boolean;
-  useInternal?: boolean;
-  useVisualCommunication?: boolean; // Adicionado aqui
+  useOpenAi?: boolean;
+  useIntegrations?: boolean;
 }
 
 const CreatePlanService = async (planData: PlanData): Promise<Plan> => {

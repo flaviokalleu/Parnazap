@@ -1,13 +1,14 @@
 import * as Yup from "yup";
 import { Request, Response } from "express";
+// import { getIO } from "../libs/socket";
 import AppError from "../errors/AppError";
 import Plan from "../models/Plan";
+
 import ListPlansService from "../services/PlanService/ListPlansService";
 import CreatePlanService from "../services/PlanService/CreatePlanService";
 import UpdatePlanService from "../services/PlanService/UpdatePlanService";
 import ShowPlanService from "../services/PlanService/ShowPlanService";
 import FindAllPlanService from "../services/PlanService/FindAllPlanService";
-import FindAllPlanServiceRegister from "../services/PlanService/FindAllPlanServiceRegister";
 import DeletePlanService from "../services/PlanService/DeletePlanService";
 
 type IndexQuery = {
@@ -22,16 +23,13 @@ type StorePlanData = {
   connections: number | 0;
   queues: number | 0;
   value: number;
-  useWhatsapp?: boolean;
-  useFacebook?: boolean;
-  useInstagram?: boolean;
   useCampaigns?: boolean;
   useSchedules?: boolean;
   useInternalChat?: boolean;
   useExternalApi?: boolean;
   useKanban?: boolean;
-  useInternal?: boolean;
-  useVisualCommunication?: boolean; // Adicionado aqui
+  useOpenAi?: boolean;
+  useIntegrations?: boolean;
 };
 
 type UpdatePlanData = {
@@ -41,16 +39,13 @@ type UpdatePlanData = {
   connections?: number;
   queues?: number;
   value?: number;
-  useWhatsapp?: boolean;
-  useFacebook?: boolean;
-  useInstagram?: boolean;
   useCampaigns?: boolean;
   useSchedules?: boolean;
   useInternalChat?: boolean;
   useExternalApi?: boolean;
   useKanban?: boolean;
-  useInternal?: boolean;
-  useVisualCommunication?: boolean; // Adicionado aqui
+  useOpenAi?: boolean;
+  useIntegrations?: boolean;
 };
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
@@ -70,12 +65,6 @@ export const list = async (req: Request, res: Response): Promise<Response> => {
   return res.status(200).json(plans);
 };
 
-export const register = async (req: Request, res: Response): Promise<Response> => {
-  const plans: Plan[] = await FindAllPlanServiceRegister();
-
-  return res.status(200).json(plans);
-};
-
 export const store = async (req: Request, res: Response): Promise<Response> => {
   const newPlan: StorePlanData = req.body;
 
@@ -90,6 +79,12 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
   }
 
   const plan = await CreatePlanService(newPlan);
+
+  // const io = getIO();
+  // io.emit("plan", {
+  //   action: "create",
+  //   plan
+  // });
 
   return res.status(200).json(plan);
 };
@@ -118,43 +113,13 @@ export const update = async (
     throw new AppError(err.message);
   }
 
-  const {
-    id,
-    name,
-    users,
-    connections,
-    queues,
-    value,
-    useWhatsapp,
-    useFacebook,
-    useInstagram,
-    useCampaigns,
-    useSchedules,
-    useInternalChat,
-    useExternalApi,
-    useKanban,
-    useInternal,
-    useVisualCommunication // Adicionado aqui
-  } = planData;
+  const plan = await UpdatePlanService(planData);
 
-  const plan = await UpdatePlanService({
-    id,
-    name,
-    users,
-    connections,
-    queues,
-    value,
-    useWhatsapp,
-    useFacebook,
-    useInstagram,
-    useCampaigns,
-    useSchedules,
-    useInternalChat,
-    useExternalApi,
-    useKanban,
-    useInternal,
-    useVisualCommunication // Adicionado aqui
-  });
+  // const io = getIO();
+  // io.emit("plan", {
+  //   action: "update",
+  //   plan
+  // });
 
   return res.status(200).json(plan);
 };

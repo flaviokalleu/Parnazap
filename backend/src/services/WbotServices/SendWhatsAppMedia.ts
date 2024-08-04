@@ -1,4 +1,4 @@
-import { WAMessage, AnyMessageContent } from "@laxeder/baileys";
+import { WAMessage, AnyMessageContent } from "@whiskeysockets/baileys";
 import * as Sentry from "@sentry/node";
 import fs from "fs";
 import { exec } from "child_process";
@@ -8,20 +8,18 @@ import AppError from "../../errors/AppError";
 import GetTicketWbot from "../../helpers/GetTicketWbot";
 import Ticket from "../../models/Ticket";
 import mime from "mime-types";
-import Contact from "../../models/Contact";
-import { getWbot } from "../../libs/wbot";
+import formatBody from "../../helpers/Mustache";
 
 interface Request {
   media: Express.Multer.File;
   ticket: Ticket;
-  companyId?: number;
   body?: string;
 }
 
 const publicFolder = path.resolve(__dirname, "..", "..", "..", "public");
 
-const processAudio = async (audio: string, companyId: string): Promise<string> => {
-  const outputAudio = `${publicFolder}/company${companyId}/${new Date().getTime()}.mp3`;
+const processAudio = async (audio: string): Promise<string> => {
+  const outputAudio = `${publicFolder}/${new Date().getTime()}.mp3`;
   return new Promise((resolve, reject) => {
     exec(
       `${ffmpegPath.path} -i ${audio} -vn -ab 128k -ar 44100 -f ipod ${outputAudio} -y`,
@@ -34,8 +32,8 @@ const processAudio = async (audio: string, companyId: string): Promise<string> =
   });
 };
 
-const processAudioFile = async (audio: string, companyId: string): Promise<string> => {
-  const outputAudio = `${publicFolder}/company${companyId}/${new Date().getTime()}.mp3`;
+const processAudioFile = async (audio: string): Promise<string> => {
+  const outputAudio = `${publicFolder}/${new Date().getTime()}.mp3`;
   return new Promise((resolve, reject) => {
     exec(
       `${ffmpegPath.path} -i ${audio} -vn -ar 44100 -ac 2 -b:a 192k ${outputAudio}`,
@@ -51,13 +49,10 @@ const processAudioFile = async (audio: string, companyId: string): Promise<strin
 export const getMessageOptions = async (
   fileName: string,
   pathMedia: string,
-  companyId?: string
+  body?: string
 ): Promise<any> => {
   const mimeType = mime.lookup(pathMedia);
   const typeMessage = mimeType.split("/")[0];
-
-  //console.log("Linha 59");
-  //console.log(typeMessage);
 
   try {
     if (!mimeType) {
@@ -68,49 +63,48 @@ export const getMessageOptions = async (
     if (typeMessage === "video") {
       options = {
         video: fs.readFileSync(pathMedia),
-        // caption: fileName,
+        caption: body ? body : '',
         fileName: fileName
         // gifPlayback: true
       };
     } else if (typeMessage === "audio") {
-      const typeAudio = fileName.includes("audio-record-site");
-      const convert = await processAudio(pathMedia, companyId);
+      const typeAudio = true; //fileName.includes("audio-record-site");
+      const convert = await processAudio(pathMedia);
       if (typeAudio) {
         options = {
           audio: fs.readFileSync(convert),
           mimetype: typeAudio ? "audio/mp4" : mimeType,
+          caption: body ? body : null,
           ptt: true
         };
       } else {
         options = {
           audio: fs.readFileSync(convert),
           mimetype: typeAudio ? "audio/mp4" : mimeType,
+          caption: body ? body : null,
           ptt: true
         };
       }
     } else if (typeMessage === "document") {
       options = {
         document: fs.readFileSync(pathMedia),
-        caption: fileName,
+        caption: body ? body : null,
         fileName: fileName,
         mimetype: mimeType
       };
     } else if (typeMessage === "application") {
       options = {
         document: fs.readFileSync(pathMedia),
-        caption: fileName,
+        caption: body ? body : null,
         fileName: fileName,
         mimetype: mimeType
       };
     } else {
       options = {
         image: fs.readFileSync(pathMedia),
-        caption: fileName
+        caption: body ? body : null
       };
     }
-  
-    //console.log("Retorno");
-    //console.log(options);
 
     return options;
   } catch (e) {
@@ -126,35 +120,31 @@ const SendWhatsAppMedia = async ({
   body
 }: Request): Promise<WAMessage> => {
   try {
-    const wbot = await getWbot(ticket.whatsappId);
-    const companyId = ticket.companyId.toString();
-    
-    //console.log("Linha 128");
-    //console.log(media);
+    const wbot = await GetTicketWbot(ticket);
 
     const pathMedia = media.path;
     const typeMessage = media.mimetype.split("/")[0];
-    //console.log(typeMessage);
     let options: AnyMessageContent;
+    const bodyMessage = formatBody(body, ticket.contact)
 
     if (typeMessage === "video") {
       options = {
         video: fs.readFileSync(pathMedia),
-        caption: body,
-        fileName: media.originalname.replace('/', '-')
+        caption: bodyMessage,
+        fileName: media.originalname
         // gifPlayback: true
       };
     } else if (typeMessage === "audio") {
       const typeAudio = media.originalname.includes("audio-record-site");
       if (typeAudio) {
-        const convert = await processAudio(media.path, companyId);
+        const convert = await processAudio(media.path);
         options = {
           audio: fs.readFileSync(convert),
           mimetype: typeAudio ? "audio/mp4" : media.mimetype,
           ptt: true
         };
       } else {
-        const convert = await processAudioFile(media.path, companyId);
+        const convert = await processAudioFile(media.path);
         options = {
           audio: fs.readFileSync(convert),
           mimetype: typeAudio ? "audio/mp4" : media.mimetype
@@ -163,59 +153,38 @@ const SendWhatsAppMedia = async ({
     } else if (typeMessage === "document" || typeMessage === "text") {
       options = {
         document: fs.readFileSync(pathMedia),
-        caption: body,
-        fileName: media.originalname.replace('/', '-'),
+        caption: bodyMessage,
+        fileName: media.originalname,
         mimetype: media.mimetype
       };
     } else if (typeMessage === "application") {
       options = {
         document: fs.readFileSync(pathMedia),
-        caption: body,
-        fileName: media.originalname.replace('/', '-'),
+        caption: bodyMessage,
+        fileName: media.originalname,
         mimetype: media.mimetype
       };
     } else {
       options = {
         image: fs.readFileSync(pathMedia),
-        caption: body
+        caption: bodyMessage,
       };
     }
-  
-    //console.log(options);
 
-    //const number = `${ticket.contact.number}@${ticket.isGroup ? "g.us" : "s.whatsapp.net"}`;
-  
-    let number = null;
-  
-    if (ticket.contact.number.length > 18) {
-  
-      const ultimos10: string = ticket.contact.number.slice(-10);
-      const restante: string = ticket.contact.number.slice(0, -10);
-      const resultadoB: string = restante + "-" + ultimos10;
-      number = `${resultadoB}@${ticket.isGroup ? "g.us" : "s.whatsapp.net"}`;
-    
-      //console.log(numero);
-    
-    }else{
-  
-      number = `${ticket.contact.number}@${ticket.isGroup ? "g.us" : "s.whatsapp.net"}`;
-  
-      //console.log(numero);
-  
-    }  
-
+    console.log("options", options);
     const sentMessage = await wbot.sendMessage(
-      number,
+      `${ticket.contact.number}@${ticket.isGroup ? "g.us" : "s.whatsapp.net"}`,
       {
         ...options
       }
     );
-	await ticket.update({ lastMessage: media.filename });
+
+    await ticket.update({ lastMessage: bodyMessage });
 
     return sentMessage;
   } catch (err) {
     Sentry.captureException(err);
-    //console.log(err);
+    console.log(err);
     throw new AppError("ERR_SENDING_WAPP_MSG");
   }
 };
