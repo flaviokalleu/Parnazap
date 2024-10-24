@@ -68,10 +68,24 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
 };
 
 export const list = async (req: Request, res: Response): Promise<Response> => {
-  const { companyId } = req.params;
-  const invoice: Invoices[] = await FindAllInvoiceService(+companyId);
+  try {
+    const { companyId } = req.params;
 
-  return res.status(200).json(invoice);
+    if (!companyId || isNaN(+companyId)) {
+      return res.status(400).json({ message: "Invalid company ID." });
+    }
+
+    const invoices: Invoices[] = await FindAllInvoiceService(+companyId);
+
+    if (invoices.length === 0) {
+      return res.status(404).json({ message: "No invoices found for this company." });
+    }
+
+    return res.status(200).json(invoices);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "An error occurred while fetching invoices." });
+  }
 };
 
 export const update = async (

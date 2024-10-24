@@ -7,10 +7,8 @@ const AudioModal = ({url}) => {
     const audioRef = useRef(null);
     const [audioRate, setAudioRate] = useState(parseFloat(localStorage.getItem(LS_NAME) || "1"));
     const [showButtonRate, setShowButtonRate] = useState(false);
-
-    // Verifica se o dispositivo é iOS ou Android
-    const isMobile = /iPad|iPhone|iPod|Android/.test(navigator.userAgent) && !window.MSStream;
-
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  
     useEffect(() => {
       audioRef.current.playbackRate = audioRate;
       localStorage.setItem(LS_NAME, audioRate);
@@ -55,13 +53,12 @@ const AudioModal = ({url}) => {
     const getAudioSource = () => {
       let sourceUrl = url;
   
-      // Substitui .ogg por .mp3 em dispositivos iOS ou Android
-      if (isMobile) {
+      if (isIOS) {
         sourceUrl = sourceUrl.replace(".ogg", ".mp3");
       }
   
       return (
-        <source src={sourceUrl} type={isMobile ? "audio/mp3" : "audio/ogg"} />
+        <source src={sourceUrl} type={isIOS ? "audio/mp3" : "audio/ogg"} />
       );
     };
   

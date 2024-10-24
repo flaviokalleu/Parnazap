@@ -22,15 +22,40 @@ interface Request {
 }
 const os = require("os");
 
-
+// let ffmpegPath;
+// if (os.platform() === "win32") {
+//   // Windows
+//   ffmpegPath = "C:\\ffmpeg\\ffmpeg.exe"; // Substitua pelo caminho correto no Windows
+// } else if (os.platform() === "darwin") {
+//   // macOS
+//   ffmpegPath = "/opt/homebrew/bin/ffmpeg"; // Substitua pelo caminho correto no macOS
+// } else {
+//   // Outros sistemas operacionais (Linux, etc.)
+//   ffmpegPath = "/usr/bin/ffmpeg"; // Substitua pelo caminho correto em sistemas Unix-like
+// }
 
 const publicFolder = path.resolve(__dirname, "..", "..", "..", "public");
 
 const processAudio = async (audio: string, companyId: string): Promise<string> => {
   const outputAudio = `${publicFolder}/company${companyId}/${new Date().getTime()}.mp3`;
+  
   return new Promise((resolve, reject) => {
     exec(
-      `${ffmpegPath.path} -i ${audio} -af "afftdn=nr=10:nf=-30:tn=1,aresample=async=1" -ar 44100 -ac 2 -b:a 192k ${outputAudio} -y`,
+      `${ffmpegPath.path} -i ${audio} -af "afftdn=nr=5:nf=-40, highpass=f=100, lowpass=f=4000, dynaudnorm=f=1000, aresample=44100, volume=1.0" -vn -ar 44100 -ac 2 -b:a 256k ${outputAudio} -y`,
+      (error, _stdout, _stderr) => {
+        if (error) reject(error);
+        resolve(outputAudio);
+      }
+    );
+  });
+};
+
+
+const processAudioFile = async (audio: string, companyId: string): Promise<string> => {
+  const outputAudio = `${publicFolder}/company${companyId}/${new Date().getTime()}.mp3`;
+  return new Promise((resolve, reject) => {
+    exec(
+      `${ffmpegPath.path} -i ${audio} -af "afftdn=nr=5:nf=-40, highpass=f=100, lowpass=f=4000, dynaudnorm=f=1000, aresample=44100, volume=1.0" -vn -ar 44100 -ac 2 -b:a 256k ${outputAudio} -y`,
       (error, _stdout, _stderr) => {
         if (error) reject(error);
         // fs.unlinkSync(audio);
@@ -38,22 +63,7 @@ const processAudio = async (audio: string, companyId: string): Promise<string> =
       }
     );
   });
-
 };
-
-const processAudioFile = async (audio: string, companyId: string): Promise<string> => {
-  const outputAudio = `${publicFolder}/company${companyId}/${new Date().getTime()}.mp3`;
-  return new Promise((resolve, reject) => {
-    exec(
-      `${ffmpegPath.path} -i ${audio} -af "afftdn=nr=10:nf=-30:tn=1,aresample=async=1" -vn -ar 44100 -ac 2 -b:a 192k ${outputAudio}`,
-      (error, _stdout, _stderr) => {
-        if (error) reject(error);
-        resolve(outputAudio);
-      }
-    );
-  });
-};
-
 
 export const getMessageOptions = async (
   fileName: string,
